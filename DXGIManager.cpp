@@ -1,7 +1,7 @@
 #include "DXGIManager.h"
 #include <gdiplus.h>
 #include <memory>
-#include "../debug.h"
+#include "Debug.h"
 
 using namespace Gdiplus;
 
