@@ -1,27 +1,5 @@
 #pragma once
-
-#include <windows.h>
-#include <atlbase.h>
-#include <DXGITYPE.h>
-#include <DXGI1_2.h>
-#include <d3d11.h>
-#include <Wincodec.h>
-#include <vector>
-#include <comdef.h>
-#include <mfapi.h>
-#include <mfidl.h>
-#include <mfreadwrite.h>
-#include <wmcodecdsp.h>
-#include <codecapi.h>
-#include <mferror.h>
-#include <evr.h>
-#include <chrono>
-
-#include <dxgi1_2.h>
-#include <d3d11.h>
-#include <mfreadwrite.h>
-#include <Mferror.h>
-
+#include "pch.h"
 _COM_SMARTPTR_TYPEDEF(IDXGIFactory1, __uuidof(IDXGIFactory1));
 _COM_SMARTPTR_TYPEDEF(ID3D11Device, __uuidof(ID3D11Device));
 _COM_SMARTPTR_TYPEDEF(ID3D11DeviceContext, __uuidof(ID3D11DeviceContext));

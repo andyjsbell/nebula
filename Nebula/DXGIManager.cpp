@@ -1,8 +1,4 @@
 #include "DXGIManager.h"
-#include <gdiplus.h>
-#include <memory>
-#include "Debug.h"
-#include "pch.h"
 using namespace Gdiplus;
 
 DEFINE_GUID(MF_XVP_PLAYBACK_MODE, 0x3c5d293f, 0xad67, 0x4e29, 0xaf, 0x12, 0xcf, 0x3e, 0x23, 0x8a, 0xcc, 0xe9);
@@ -1139,3 +1135,4 @@ int DXGIManager::GetMonitorCount()
         return Count;
     return -1;
 }
+#include "pch.h"
