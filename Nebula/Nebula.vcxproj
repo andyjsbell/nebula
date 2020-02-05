@@ -157,6 +157,7 @@
     <ClInclude Include="Debug.h" />
     <ClInclude Include="DXGIManager.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="Nebula.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>

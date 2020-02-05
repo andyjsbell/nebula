@@ -2,8 +2,22 @@
 //
 
 #include "pch.h"
+#include "DXGIManager.h"
+#include "Nebula.h"
+extern "C" DXGIManager* gManager = nullptr;
 
-// TODO: This is an example of a library function
-void fnNebula()
+extern "C" bool CreateManager(int outWidth, int outHeight)
 {
+	gManager = new DXGIManager(outWidth, outHeight);
+	return true;
+}
+
+extern "C" bool IsSupported()
+{
+	if (gManager != nullptr)
+	{
+		return gManager->IsSupported() == S_OK;
+	}
+
+	return false;
 }
