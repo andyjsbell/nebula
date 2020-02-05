@@ -3,8 +3,6 @@ extern crate libc;
 //use std::time::{Instant};
 
 #[link(name = "Nebula", kind = "static")]
-#[link(name = "atls")]
-
 extern {
     fn CreateManager(outWidth: u32, outHeight: u32) -> bool;
     fn IsSupported() -> bool;
@@ -21,6 +19,8 @@ fn is_supported() -> bool {
         IsSupported()
     }
 }
+
+
 fn main() {
     println!("Initialised Nebula C");
     println!("{}", create_manager(1920, 1080));
