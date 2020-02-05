@@ -3,6 +3,7 @@ extern crate libc;
 //use std::time::{Instant};
 
 #[link(name = "Nebula", kind = "static")]
+#[link(name = "atls")]
 
 extern {
     fn CreateManager(outWidth: u32, outHeight: u32) -> bool;
