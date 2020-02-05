@@ -1,22 +1,21 @@
-// Nebula.cpp : Defines the functions for the static library.
-//
-
-#include "pch.h"
-#include "DXGIManager.h"
 #include "Nebula.h"
-extern "C" DXGIManager* gManager = nullptr;
+#include "DXGIManager.h"
+
+DXGIManager * _manager = nullptr;
 
 extern "C" bool CreateManager(int outWidth, int outHeight)
 {
-	gManager = new DXGIManager(outWidth, outHeight);
+	if (_manager == nullptr)
+		_manager = new DXGIManager;
+
 	return true;
 }
 
 extern "C" bool IsSupported()
 {
-	if (gManager != nullptr)
+	if (_manager != nullptr)
 	{
-		return gManager->IsSupported() == S_OK;
+		return _manager->IsSupported() == S_OK;
 	}
 
 	return false;
