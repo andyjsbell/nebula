@@ -686,12 +686,17 @@ HRESULT DXGIManager::Init()
             dxgi->SetGPUThreadPriority(7);
         }
 
-        for(std::vector<CComPtr<IDXGIOutput>>::iterator OutputIter = vOutputs.begin();
-            OutputIter != vOutputs.end();
-            OutputIter++)
-        {
-            CComQIPtr<IDXGIOutput1> spDXGIOutput1 = *OutputIter;
-            CComQIPtr<IDXGIDevice1> spDXGIDevice = spD3D11Device;
+		for (std::vector<CComPtr<IDXGIOutput>>::iterator OutputIter = vOutputs.begin();
+			OutputIter != vOutputs.end();
+			OutputIter++)
+		{
+			//CComQIPtr<IDXGIOutput1> spDXGIOutput1 = *OutputIter;
+			IDXGIOutput1 * spDXGIOutput1;
+			(*OutputIter)->QueryInterface(__uuidof(IDXGIOutput1), (void**)&spDXGIOutput1);
+			IDXGIDevice1 * spDXGIDevice;
+            //CComQIPtr<IDXGIDevice1> spDXGIDevice = spD3D11Device;
+			spD3D11Device->QueryInterface(__uuidof(IDXGIDevice1), (void **)&spDXGIDevice);
+
             if(!spDXGIOutput1 || !spDXGIDevice)
                 continue;
 
@@ -1135,4 +1140,3 @@ int DXGIManager::GetMonitorCount()
         return Count;
     return -1;
 }
-#include "pch.h"
