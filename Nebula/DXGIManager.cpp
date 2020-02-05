@@ -691,9 +691,9 @@ HRESULT DXGIManager::Init()
 			OutputIter++)
 		{
 			//CComQIPtr<IDXGIOutput1> spDXGIOutput1 = *OutputIter;
-			IDXGIOutput1 * spDXGIOutput1;
+			IDXGIOutput1 * spDXGIOutput1 = nullptr;
 			(*OutputIter)->QueryInterface(__uuidof(IDXGIOutput1), (void**)&spDXGIOutput1);
-			IDXGIDevice1 * spDXGIDevice;
+			IDXGIDevice1 * spDXGIDevice = nullptr;
             //CComQIPtr<IDXGIDevice1> spDXGIDevice = spD3D11Device;
 			spD3D11Device->QueryInterface(__uuidof(IDXGIDevice1), (void **)&spDXGIDevice);
 
@@ -722,12 +722,12 @@ HRESULT DXGIManager::Init()
         }
     }
 
-    hr = m_spWICFactory.CoCreateInstance(CLSID_WICImagingFactory);
-    if( FAILED(hr) )
-    {
-        DEBUG_WARN("Failed to create WICImagingFactory hr=%08x", hr);
-        return hr;
-    }
+    //hr = m_spWICFactory.CoCreateInstance(CLSID_WICImagingFactory);
+    //if( FAILED(hr) )
+    //{
+    //    DEBUG_WARN("Failed to create WICImagingFactory hr=%08x", hr);
+    //    return hr;
+    //}
 
     m_bInitialized = true;
 

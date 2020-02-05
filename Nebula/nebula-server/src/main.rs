@@ -20,7 +20,6 @@ fn is_supported() -> bool {
     }
 }
 
-
 fn main() {
     println!("Initialised Nebula C");
     println!("{}", create_manager(1920, 1080));
