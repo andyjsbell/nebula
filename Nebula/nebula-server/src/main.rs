@@ -8,6 +8,40 @@ extern {
     fn IsSupported() -> bool;
     fn GetOutputRect(x: &u32, y: &u32, width: &u32, height: &u32) -> bool;
     fn GetOriginalRect(x: &u32, y: &u32, width: &u32, height: &u32) -> bool;
+    fn GetOutputBits(buffer: &*mut u8, outLen: &u32, nv12: &bool) -> bool;
+}
+
+struct Frame {
+    data: Vec<u8>,
+    nv12: bool,
+    width: u32,
+    height: u32,
+}
+
+fn get_output_bits() -> Option<Frame> {
+    let output_rect = get_output_rect();
+
+    let mut dstlen = output_rect.2 * output_rect.3 * 4;
+
+    let mut dst:Vec<u8> = Vec::with_capacity(dstlen as usize);
+    let pdst = dst.as_mut_ptr();
+    let nv12 = false;
+    
+    unsafe {
+        
+        if GetOutputBits(&pdst, &dstlen, &nv12) {
+            dst.set_len(dstlen as usize);
+            return 
+                Some(Frame {
+                    data: dst,
+                    nv12: nv12,
+                    width: output_rect.2,
+                    height: output_rect.3,
+                });
+        }
+    }
+
+    None
 }
 
 fn create_manager(out_width: u32, out_height: u32) -> bool {
@@ -52,9 +86,26 @@ fn get_original_rect() -> Rect {
 }
 
 fn main() {
+    
     println!("Initialised Nebula C");
-    println!("{}", create_manager(1920, 1080));
-    println!("{}", is_supported());
-    println!("{:?}", get_output_rect());
-    println!("{:?}", get_original_rect());
+    if !create_manager(1920, 1080) {
+        println!("Failed to create manager");
+        return;
+    }
+
+    if !is_supported() {
+        println!("Not supported");
+        return;
+    }
+
+    match get_output_bits(){
+        None => println!("Failed to get frame"),
+        Some(frame) => {
+            println!("We have a frame nv12={0} width={1} height={2} size={3}",
+                    frame.nv12,
+                    frame.width,
+                    frame.height,
+                    frame.data.len());
+        }
+    }
 }
