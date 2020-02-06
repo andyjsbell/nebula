@@ -543,7 +543,7 @@ DXGIManager::~DXGIManager()
     m_vOutputs.clear();
 
     m_spDXGIFactory1.Release();
-    m_spWICFactory.Release();
+    //m_spWICFactory.Release();
 
     GdiplusShutdown(m_gdiplusToken);
 }
@@ -722,13 +722,6 @@ HRESULT DXGIManager::Init()
         }
     }
 
-    //hr = m_spWICFactory.CoCreateInstance(CLSID_WICImagingFactory);
-    //if( FAILED(hr) )
-    //{
-    //    DEBUG_WARN("Failed to create WICImagingFactory hr=%08x", hr);
-    //    return hr;
-    //}
-
     m_bInitialized = true;
 
     return S_OK;
@@ -815,14 +808,6 @@ HRESULT DXGIManager::GetOriginalRect(RECT & rc)
 HRESULT DXGIManager::GetOutputBits(BYTE** pBits, DWORD& outLen, bool& nv12)
 {
     HRESULT hr = S_OK;
-
-    RECT rcDest;
-    hr = GetOutputRect(rcDest);
-
-    if (FAILED(hr))
-    {
-        return hr;
-    }
 
     RECT rcOutput;
     hr = GetOutputRect(rcOutput);
@@ -922,7 +907,8 @@ HRESULT DXGIManager::GetOutputBits(BYTE** pBits, DWORD& outLen, bool& nv12)
 #ifdef WRITE_FILE
         DownloadTexture(f2, texture, out.m_D3DDevice.p, out.m_D3DDeviceContext.p);
 #endif
-        // We have the texture from the grabber, now pass through scaler and convert to NV12 and resize if needed and download to memory
+
+		// We have the texture from the grabber, now pass through scaler and convert to NV12 and resize if needed and download to memory
         hr = ScaleFrame(out.m_D3DDevice.p,
                         out.m_D3DDeviceContext.p,
                         (_gdiTexture != nullptr) ? _gdiTexture : texture,
@@ -977,7 +963,7 @@ HRESULT DXGIManager::GetOutputBits(BYTE** pBits, DWORD& outLen, bool& nv12)
             if(pBuf==NULL)
                 pBuf = new BYTE[size];
             outLen = size;
-            memcpy(pBuf, mapping.pData, size);
+			memcpy(pBuf, mapping.pData, size);
 
             out.m_D3DDeviceContext.p->Unmap(_copyRGBTexture, 0);
         }

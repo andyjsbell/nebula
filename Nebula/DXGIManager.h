@@ -154,7 +154,6 @@ private:
 	RECT m_rcCurrentOutput;
 	BYTE* m_pBuf;
 
-	CComPtr<IWICImagingFactory> m_spWICFactory;
 	ULONG_PTR m_gdiplusToken;
 	DXGIPointerInfo* m_pDXGIPointer;
 
