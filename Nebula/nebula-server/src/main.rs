@@ -1,13 +1,21 @@
 extern crate libc;
+#[macro_use]
+extern crate crossbeam_channel;
+
 //use libc::{c_int, size_t};
 //use std::time::{Instant};
+use std::net::TcpListener;
+use tungstenite::server::accept;
+use crossbeam_channel::bounded;
+use std::sync::Arc;
+use std::thread;
 
 #[link(name = "Nebula", kind = "static")]
 extern {
     fn CreateManager(outWidth: u32, outHeight: u32) -> bool;
     fn IsSupported() -> bool;
     fn GetOutputRect(x: &u32, y: &u32, width: &u32, height: &u32) -> bool;
-    fn GetOriginalRect(x: &u32, y: &u32, width: &u32, height: &u32) -> bool;
+    // fn GetOriginalRect(x: &u32, y: &u32, width: &u32, height: &u32) -> bool;
     fn GetOutputBits(buffer: &*mut u8, outLen: &u32, nv12: &bool) -> bool;
 }
 
@@ -72,23 +80,23 @@ fn get_output_rect() -> Rect {
     }
 }
 
-fn get_original_rect() -> Rect {
-    unsafe {
-        let x: u32 = 0;
-        let y: u32 = 0;
-        let width: u32 = 0;
-        let height: u32 = 0;
+// fn get_original_rect() -> Rect {
+//     unsafe {
+//         let x: u32 = 0;
+//         let y: u32 = 0;
+//         let width: u32 = 0;
+//         let height: u32 = 0;
 
-        GetOriginalRect(&x, &y, &width, &height);
+//         GetOriginalRect(&x, &y, &width, &height);
 
-        Rect(x, y, width, height)
-    }
-}
+//         Rect(x, y, width, height)
+//     }
+// }
 
 fn main() {
     
     println!("Launching Nebula Server");
-    
+
     if !create_manager(1920, 1080) {
         println!("Failed to create manager");
         return;
@@ -99,14 +107,51 @@ fn main() {
         return;
     }
 
-    match get_output_bits(){
-        None => println!("Failed to get frame"),
-        Some(frame) => {
-            println!("We have a frame nv12={0} width={1} height={2} size={3}",
-                    frame.nv12,
-                    frame.width,
-                    frame.height,
-                    frame.data.len());
-        }
+    let (frame_sender, fr) = bounded(10);  // 10 frame capacity
+
+    let frame_receiver = Arc::new(fr);  // Create a referenced count
+
+    let grabber = move || {
+        match get_output_bits() {
+            None => println!("Failed to get frame"),
+            Some(frame) => {
+                println!("We have a frame nv12={0} width={1} height={2} size={3}",
+                        frame.nv12,
+                        frame.width,
+                        frame.height,
+                        frame.data.len());
+
+                frame_sender.send(frame).unwrap();
+            }
+        }    
+    }; 
+
+    // Start thread to grab screen frames
+    thread::spawn(grabber);
+    
+    // Create server and block on connections which are spawned into own thread
+    let server = TcpListener::bind("127.0.0.1:9001").unwrap();
+    
+    for stream in server.incoming() {
+        
+        let frame_receiver = Arc::clone(&frame_receiver);
+        
+        thread::spawn (move || {
+            
+            let mut websocket = accept(stream.unwrap()).unwrap();
+            
+            loop {
+                let msg = websocket.read_message().unwrap();
+
+                if msg.is_binary() {
+                    // If cmd 'f'
+                    // Grab latest frame from channel
+                    // Encode and send back in this thread
+                    let frames: Vec<Frame> = frame_receiver.iter().collect();
+                    let frame = frames.last();
+                    
+                }
+            }
+        });
     }
 }
