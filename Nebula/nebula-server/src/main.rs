@@ -21,7 +21,7 @@ struct Frame {
 fn get_output_bits() -> Option<Frame> {
     let output_rect = get_output_rect();
 
-    let mut dstlen = output_rect.2 * output_rect.3 * 4;
+    let dstlen = output_rect.2 * output_rect.3 * 4;
 
     let mut dst:Vec<u8> = Vec::with_capacity(dstlen as usize);
     let pdst = dst.as_mut_ptr();
@@ -87,7 +87,8 @@ fn get_original_rect() -> Rect {
 
 fn main() {
     
-    println!("Initialised Nebula C");
+    println!("Launching Nebula Server");
+    
     if !create_manager(1920, 1080) {
         println!("Failed to create manager");
         return;
