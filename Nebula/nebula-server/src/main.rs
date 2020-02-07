@@ -8,6 +8,7 @@ extern crate libc;
 // use crossbeam_channel::bounded;
 // use std::sync::Arc;
 // use std::thread;
+// https://rust-lang.github.io/rust-bindgen/tutorial-4.html
 #[allow(non_snake_case)]
 #[allow(non_upper_case_globals)]
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
