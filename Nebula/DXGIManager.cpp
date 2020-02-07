@@ -917,7 +917,7 @@ HRESULT DXGIManager::GetOutputBits(BYTE** pBits, DWORD& outLen, bool& nv12)
                         pBuf,
                         outLen);
 
-        if (FAILED(hr))
+        if (FAILED(hr) && !nv12)
         {
             DEBUG_WARN("Scale failed");
 

@@ -8,7 +8,7 @@ extern {
     fn IsSupported() -> bool;
     fn GetOutputRect(x: &u32, y: &u32, width: &u32, height: &u32) -> bool;
     fn GetOriginalRect(x: &u32, y: &u32, width: &u32, height: &u32) -> bool;
-    fn GetOutputBits(buffer: &*mut u8, outLen: &u32, nv12: bool) -> bool;
+    fn GetOutputBits(buffer: &*mut u8, outLen: &u32, nv12: &bool) -> bool;
 }
 
 struct Frame {
@@ -21,7 +21,7 @@ struct Frame {
 fn get_output_bits() -> Option<Frame> {
     let output_rect = get_output_rect();
 
-    let mut dstlen = output_rect.2 * output_rect.3 * 3 / 2;
+    let mut dstlen = output_rect.2 * output_rect.3 * 4;
 
     let mut dst:Vec<u8> = Vec::with_capacity(dstlen as usize);
     let pdst = dst.as_mut_ptr();
@@ -29,7 +29,7 @@ fn get_output_bits() -> Option<Frame> {
     
     unsafe {
         
-        if GetOutputBits(&pdst, &dstlen, nv12) {
+        if GetOutputBits(&pdst, &dstlen, &nv12) {
             dst.set_len(dstlen as usize);
             return 
                 Some(Frame {
