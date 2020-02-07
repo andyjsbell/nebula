@@ -1,3 +1,7 @@
+#![allow(non_upper_case_globals)]
+#![allow(non_camel_case_types)]
+#![allow(non_snake_case)]
+
 extern crate libc;
 // #[macro_use]
 // extern crate crossbeam_channel;
@@ -9,8 +13,7 @@ extern crate libc;
 // use std::sync::Arc;
 // use std::thread;
 // https://rust-lang.github.io/rust-bindgen/tutorial-4.html
-#[allow(non_snake_case)]
-#[allow(non_upper_case_globals)]
+
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 #[link(name = "Nebula", kind = "static")]
@@ -105,6 +108,7 @@ fn main() {
     
     println!("Launching Nebula Server");
 
+    
     if !create_manager(1920, 1080) {
         println!("Failed to create manager");
         return;
@@ -115,6 +119,12 @@ fn main() {
         return;
     }
 
+    unsafe {
+        let codec = avcodec_find_encoder(AVCodecID_AV_CODEC_ID_H264);
+        // let config = avcodec_configuration();
+        // println!("{:?}", config);
+    }
+    
     // let (frame_sender, fr) = bounded(10);  // 10 frame capacity
 
     // let frame_receiver = Arc::new(fr);  // Create a referenced count
