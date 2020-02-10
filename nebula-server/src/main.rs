@@ -16,7 +16,6 @@ extern crate libc;
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
-// #[link(name = "Nebula", kind = "static")]
 extern {
     fn CreateManager(outWidth: u32, outHeight: u32) -> bool;
     fn IsSupported() -> bool;
