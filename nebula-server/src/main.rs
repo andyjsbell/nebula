@@ -3,6 +3,10 @@
 #![allow(non_snake_case)]
 
 extern crate libc;
+extern crate ffmpeg4_ffi;
+
+use std::ffi::CStr;
+
 // #[macro_use]
 // extern crate crossbeam_channel;
 //use libc::{c_int, size_t};
@@ -13,8 +17,6 @@ extern crate libc;
 // use std::sync::Arc;
 // use std::thread;
 // https://rust-lang.github.io/rust-bindgen/tutorial-4.html
-
-include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 extern {
     fn CreateManager(outWidth: u32, outHeight: u32) -> bool;
@@ -117,11 +119,14 @@ fn main() {
         return;
     }
 
-    // unsafe {
+    unsafe {
+        let version = CStr::from_ptr(ffmpeg4_ffi::sys::av_version_info());
+        println!("ffmpeg version: {}", version.to_string_lossy().into_owned());
+
     //     let codec = avcodec_find_encoder(AVCodecID_AV_CODEC_ID_H264);
     //     // let config = avcodec_configuration();
     //     // println!("{:?}", config);
-    // }
+    }
     
     // let (frame_sender, fr) = bounded(10);  // 10 frame capacity
 
