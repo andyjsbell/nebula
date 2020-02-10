@@ -82,7 +82,9 @@ fn main() {
     // Start thread to grab screen frames
     thread::spawn(grabber);
     
-    if !encoder::initialise() {
+    let mut encoder : encoder::Encoder = encoder::Encoder::new();
+
+    if !encoder.initialise() {
         println!("Failed to initliase encoder");
     }
 
@@ -102,6 +104,8 @@ fn main() {
                         captured_frame.data.len());
                 
                 // thread::sleep_ms(1000 / fps);
+
+                encoder.encode_frame();
             }
         };
     }
