@@ -16,7 +16,7 @@ extern crate libc;
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
-#[link(name = "Nebula", kind = "static")]
+// #[link(name = "Nebula", kind = "static")]
 extern {
     fn CreateManager(outWidth: u32, outHeight: u32) -> bool;
     fn IsSupported() -> bool;
@@ -108,7 +108,6 @@ fn main() {
     
     println!("Launching Nebula Server");
 
-    
     if !create_manager(1920, 1080) {
         println!("Failed to create manager");
         return;
@@ -119,11 +118,11 @@ fn main() {
         return;
     }
 
-    unsafe {
-        let codec = avcodec_find_encoder(AVCodecID_AV_CODEC_ID_H264);
-        // let config = avcodec_configuration();
-        // println!("{:?}", config);
-    }
+    // unsafe {
+    //     let codec = avcodec_find_encoder(AVCodecID_AV_CODEC_ID_H264);
+    //     // let config = avcodec_configuration();
+    //     // println!("{:?}", config);
+    // }
     
     // let (frame_sender, fr) = bounded(10);  // 10 frame capacity
 

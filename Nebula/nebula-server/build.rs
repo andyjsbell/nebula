@@ -44,7 +44,8 @@ fn main() {
     
     // Build Nebula
     cc::Build::new()
-        .file("../Nebula.cpp")
+        .file("src/Nebula.cpp")
+        .file("src/DXGIManager.cpp")
         .include(atl_path)
         .compile("nebula");
 }
