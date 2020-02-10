@@ -1,13 +1,17 @@
-#![allow(non_upper_case_globals)]
-#![allow(non_camel_case_types)]
-#![allow(non_snake_case)]
-
 extern crate libc;
 extern crate ffmpeg4_ffi;
 extern crate num_cpus;
+#[macro_use]
+extern crate crossbeam_channel;
 
 use std::ffi::{CString, CStr};
-use std::ptr;
+use libc::{c_int, size_t};
+use std::time::{Instant};
+use std::{ptr, thread};
+use std::net::TcpListener;
+use tungstenite::server::accept;
+use crossbeam_channel::bounded;
+use std::sync::Arc;
 
 use ffmpeg4_ffi::sys::{
     self,
@@ -37,17 +41,6 @@ use ffmpeg4_ffi::sys::{
     AV_INPUT_BUFFER_PADDING_SIZE,
 };
 
-// #[macro_use]
-// extern crate crossbeam_channel;
-//use libc::{c_int, size_t};
-//use std::time::{Instant};
-// use std::net::TcpListener;
-// use tungstenite::server::accept;
-// use crossbeam_channel::bounded;
-// use std::sync::Arc;
-// use std::thread;
-// https://rust-lang.github.io/rust-bindgen/tutorial-4.html
-
 extern {
     fn CreateManager(outWidth: u32, outHeight: u32) -> bool;
     fn IsSupported() -> bool;
@@ -55,11 +48,6 @@ extern {
     // fn GetOriginalRect(x: &u32, y: &u32, width: &u32, height: &u32) -> bool;
     fn GetOutputBits(buffer: &*mut u8, outLen: &u32, nv12: &bool) -> bool;
 }
-
-// #[link(name = "avcodec-58", kind = "dynamic")]
-// extern {
-//     fn avcodec_find_encoder(codec: u32) -> 
-// }
 
 struct Frame {
     data: Vec<u8>,
@@ -236,51 +224,51 @@ fn main() {
         }
     }
     
-    // let (frame_sender, fr) = bounded(10);  // 10 frame capacity
+    let (frame_sender, fr) = bounded(10);  // 10 frame capacity
 
-    // let frame_receiver = Arc::new(fr);  // Create a referenced count
+    let frame_receiver = Arc::new(fr);  // Create a referenced count
 
-    // let grabber = move || {
-    //     match get_output_bits() {
-    //         None => println!("Failed to get frame"),
-    //         Some(frame) => {
-    //             println!("We have a frame nv12={0} width={1} height={2} size={3}",
-    //                     frame.nv12,
-    //                     frame.width,
-    //                     frame.height,
-    //                     frame.data.len());
+    let grabber = move || {
+        match get_output_bits() {
+            None => println!("Failed to get frame"),
+            Some(frame) => {
+                println!("We have a frame nv12={0} width={1} height={2} size={3}",
+                        frame.nv12,
+                        frame.width,
+                        frame.height,
+                        frame.data.len());
 
-    //             frame_sender.send(frame).unwrap();
-    //         }
-    //     }    
-    // }; 
+                frame_sender.send(frame).unwrap();
+            }
+        }    
+    }; 
 
-    // // Start thread to grab screen frames
-    // thread::spawn(grabber);
+    // Start thread to grab screen frames
+    thread::spawn(grabber);
     
-    // // Create server and block on connections which are spawned into own thread
-    // let server = TcpListener::bind("127.0.0.1:9001").unwrap();
+    // Create server and block on connections which are spawned into own thread
+    let server = TcpListener::bind("127.0.0.1:9001").unwrap();
     
-    // for stream in server.incoming() {
+    for stream in server.incoming() {
         
-    //     let frame_receiver = Arc::clone(&frame_receiver);
+        let frame_receiver = Arc::clone(&frame_receiver);
         
-    //     thread::spawn (move || {
+        thread::spawn (move || {
             
-    //         let mut websocket = accept(stream.unwrap()).unwrap();
+            let mut websocket = accept(stream.unwrap()).unwrap();
             
-    //         loop {
-    //             let msg = websocket.read_message().unwrap();
+            loop {
+                let msg = websocket.read_message().unwrap();
 
-    //             if msg.is_binary() {
-    //                 // If cmd 'f'
-    //                 // Grab latest frame from channel
-    //                 // Encode and send back in this thread
-    //                 let frames: Vec<Frame> = frame_receiver.iter().collect();
-    //                 let frame = frames.last();
+                if msg.is_binary() {
+                    // If cmd 'f'
+                    // Grab latest frame from channel
+                    // Encode and send back in this thread
+                    let frames: Vec<Frame> = frame_receiver.iter().collect();
+                    let frame = frames.last();
 
-    //             }
-    //         }
-    //     });
-    // }
+                }
+            }
+        });
+    }
 }
