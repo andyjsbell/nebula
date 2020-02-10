@@ -12,6 +12,7 @@ tungstenite = "0.10.1"
 crossbeam-channel = "0.4"
 ffmpeg4-ffi = { git = "https://github.com/andyjsbell/ffmpeg4-ffi-rust.git" }
 num_cpus = "1.12.0"
-
+timer = "0.2.0"
+chrono = "0.4.10"
 [build-dependencies]
 cc = "1.0"
