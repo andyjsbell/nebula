@@ -1,21 +1,36 @@
+extern crate ffmpeg4_ffi;
+
+use ffmpeg4_ffi::sys::AVPixelFormat;
+
 #[derive(Debug)]
 pub struct Rect(u32, u32, u32, u32);
+
+impl Rect {
+    pub fn size(self) -> Size {
+        Size(self.2 - self.0, self.3 - self.0)
+    }
+}
+
+#[derive(Debug)]
+pub struct Size(pub u32, pub u32);
 
 #[derive(Debug)]
 pub struct Frame {
     pub data: Vec<u8>,
-    pub nv12: bool,
-    pub width: u32,
-    pub height: u32,
+    pub resolution: Size,
+    pub screen_resolution: Size,
+    pub format: AVPixelFormat,
+    pub time: u32,
 }
 
 impl Frame {
-    pub fn new(width: u32, height: u32, nv12: bool) -> Frame {
+    pub fn new(resolution: Size, screen_resolution: Size, format: AVPixelFormat, time: u32) -> Frame {
         Frame {
             data: vec![0],
-            nv12: nv12,
-            width: width,
-            height: height,
+            resolution: resolution,
+            screen_resolution: screen_resolution,
+            format: format,
+            time: time,
         }
     }
 }
@@ -44,9 +59,14 @@ pub fn get_output_bits() -> Option<Frame> {
             return 
                 Some(Frame {
                     data: dst,
-                    nv12: nv12,
-                    width: output_rect.2,
-                    height: output_rect.3,
+                    resolution: output_rect.size(),
+                    screen_resolution: Size(0, 0),
+                    time: 0,
+                    format: if nv12 { 
+                        ffmpeg4_ffi::sys::AVPixelFormat_AV_PIX_FMT_NV12 
+                    } else {
+                        ffmpeg4_ffi::sys::AVPixelFormat_AV_PIX_FMT_BGRA
+                    },
                 });
         }
     }
