@@ -46,6 +46,14 @@ fn number_of_threads(width: u32, height: u32, number_of_cores:u8) -> i32 {
     }
 }
 
+unsafe fn from_buf_raw<T>(ptr: *const T, elts: usize) -> Vec<T> {
+    let mut dst = Vec::with_capacity(elts);
+    dst.set_len(elts);
+    ptr::copy(ptr, dst.as_mut_ptr(), elts);
+    dst
+}
+
+#[derive(Debug)]
 pub enum Codec {
     H264X264,
 }
@@ -57,6 +65,7 @@ pub enum EncodeError {
     Format
 }
 
+#[derive(Debug)]
 pub struct EncodedFrame {
     pub size: u32,
     pub magic: u32,
@@ -262,9 +271,7 @@ impl Encoder {
                     codec: Codec::H264X264,
                     width: frame.resolution.0 as u16,
                     height: frame.resolution.1 as u16, 
-                    data: Vec::from_raw_parts(  pkt.data, 
-                                                pkt.size as usize,
-                                                pkt.size as usize),
+                    data: from_buf_raw(pkt.data, pkt.size as usize),
                 };
                 
                 sys::av_packet_unref(&mut pkt);
