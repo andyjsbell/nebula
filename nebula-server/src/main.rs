@@ -69,30 +69,19 @@ fn main() {
     // Start thread to grab screen frames
     thread::spawn(grabber);
     
-    let mut encoder : encoder::Encoder = encoder::Encoder::new();
-
-    if !encoder.initialise() {
-        println!("Failed to initliase encoder");
-    }
-
     let encoder_thread;
     {
         // let mutex_arc = mutex_arc.clone();
         encoder_thread = move || {
-            
+            let mut e : encoder::Encoder = encoder::Encoder::new();
+
+            if !e.initialise() {
+                println!("Failed to initliase encoder");
+            }
+
             loop {
                 // let mut captured_frame = mutex_arc.lock().unwrap();
-                let captured_frame = fr.recv().unwrap();
-                
-                println!("Encode frame nv12={0} width={1} height={2} size={3}",
-                        captured_frame.nv12,
-                        captured_frame.width,
-                        captured_frame.height,
-                        captured_frame.data.len());
-                
-                // thread::sleep_ms(1000 / fps);
-
-                encoder.encode_frame();
+                let encoded_frame = e.encode_frame(fr.recv().unwrap()).unwrap();
             }
         };
     }
