@@ -1,16 +1,14 @@
 extern crate libc;
-#[macro_use]
 extern crate crossbeam_channel;
 extern crate timer;
 extern crate chrono;
 
-use libc::{c_int, size_t};
 use std::time::{Instant};
-use std::{ptr, thread};
+use std::{thread};
 use std::net::TcpListener;
 use tungstenite::server::accept;
 use crossbeam_channel::bounded;
-use std::sync::Arc;
+// use std::sync::Arc;
 
 mod encoder;
 mod grabber;
