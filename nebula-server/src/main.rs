@@ -18,7 +18,7 @@ fn main() {
     println!("Launching Nebula Server");
 
     let (frame_sender, fr) = bounded(0);
-    let fps: u32 = 60;
+    let fps: u64 = 60;
 
     // let frame_receiver = Arc::new(fr);  // Create a referenced count
 
@@ -51,27 +51,16 @@ fn main() {
                 match grabber::get_output_bits() {
                     None => println!("Failed to get frame"),
                     Some(frame) => {
-                        println!("Captured frame nv12={0} width={1} height={2} size={3}",
-                                frame.nv12,
-                                frame.width,
-                                frame.height,
-                                frame.data.len());
-
-                        // let mut captured_frame = mutex_arc.lock().unwrap();
-                        // captured_frame.data = frame.data;
-                        // captured_frame.width = frame.width;
-                        // captured_frame.height = frame.height;
-                        // captured_frame.nv12 = frame.nv12;
                         
                         frame_sender.send(frame).unwrap();
                     }
                 }
 
-                let diff = now.elapsed().as_millis() as u32;
+                let diff = now.elapsed().as_millis() as u64;
                 
                 if diff < 1000 / fps {
-                    let sleep = 1000 / fps - diff;
-                    thread::sleep_ms(sleep);
+                    let d = std::time::Duration::from_millis(1000 / fps - diff); 
+                    thread::sleep(d);
                 }
             }
         }; 
