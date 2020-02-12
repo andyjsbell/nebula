@@ -8,7 +8,7 @@ use std::{thread};
 use std::net::TcpListener;
 use tungstenite::server::accept;
 use crossbeam_channel::bounded;
-// use std::sync::Arc;
+use std::sync::Arc;
 
 mod encoder;
 mod grabber;
@@ -17,21 +17,17 @@ fn main() {
     
     println!("Launching Nebula Server");
 
-    let (frame_sender, fr) = bounded(0);
+    let (capturer_channel_sender, capturer_channel_receiver) = bounded(0);
+    let (_web_channel_sender, web_channel_receiver) = bounded(1); // Block on web requests
+    let (encoder_channel_sender, encoder_channel_receiver) = bounded(1); // One encoded frame at a time
+    
     let fps: u64 = 60;
 
-    // let frame_receiver = Arc::new(fr);  // Create a referenced count
-
-    // Create shared frame for capture and encoding
-    // let captured_frame: grabber::Frame = grabber::Frame::new(1920, 1080, true);
-    // let mutex = std::sync::Mutex::new(captured_frame);
-    // let mutex_arc = std::sync::Arc::new(mutex);
-    // //
+    let web_channel_sender = Arc::new(_web_channel_sender);  // Create a referenced count
 
     // Grabber scope
     let grabber;
     {   
-        // let mutex_arc = mutex_arc.clone();
         grabber = move || {
         
             if !grabber::create_manager(1920, 1080) {
@@ -52,7 +48,7 @@ fn main() {
                     None => println!("Failed to get frame"),
                     Some(frame) => {
                         
-                        frame_sender.send(frame).unwrap();
+                        capturer_channel_sender.send(frame).unwrap();
                     }
                 }
 
@@ -71,8 +67,8 @@ fn main() {
     
     let encoder_thread;
     {
-        // let mutex_arc = mutex_arc.clone();
         encoder_thread = move || {
+            
             let mut e : encoder::Encoder = encoder::Encoder::new();
 
             if !e.initialise() {
@@ -80,37 +76,50 @@ fn main() {
             }
 
             loop {
-                // let mut captured_frame = mutex_arc.lock().unwrap();
-                let encoded_frame = e.encode_frame(fr.recv().unwrap()).unwrap();
+                let captured_frame = capturer_channel_receiver.recv().unwrap();
+                let requested = web_channel_receiver.recv().unwrap();
+                if requested == 1 {
+                    let encoded_frame = e.encode_frame(captured_frame).unwrap();
+                    encoder_channel_sender.send(encoded_frame);
+                }
             }
         };
     }
 
     thread::spawn(encoder_thread);
-
-    // Create server and block on connections which are spawned into own thread
-    let server = TcpListener::bind("127.0.0.1:9001").unwrap();
     
-    for stream in server.incoming() {
-        
-        // let frame_receiver = Arc::clone(&frame_receiver);
-        
-        thread::spawn (move || {
-            
-            let mut websocket = accept(stream.unwrap()).unwrap();
-            
-            loop {
-                let msg = websocket.read_message().unwrap();
-
-                if msg.is_binary() {
-                    // If cmd 'f'
-                    // Grab latest frame from channel
-                    // Encode and send back in this thread
-                    // let frames: Vec<grabber::Frame> = frame_receiver.iter().collect();
-                    // let frame = frames.last();
-
-                }
-            }
-        });
+    // Simple console readline to encode screen frame
+    let mut line = String::new();
+    loop {
+        let b1 = std::io::stdin().read_line(&mut line).unwrap();
+        web_channel_sender.send(1).unwrap();
+        let encoded_frame = encoder_channel_receiver.recv().unwrap();
+        println!("{:?}", encoded_frame)
     }
+    
+    // Create server and block on connections which are spawned into own thread
+    // let server = TcpListener::bind("127.0.0.1:9001").unwrap();
+    
+    // for stream in server.incoming() {
+        
+    //     let web_channel_sender = Arc::clone(&web_channel_sender);
+        
+    //     thread::spawn (move || {
+            
+    //         let mut websocket = accept(stream.unwrap()).unwrap();
+            
+    //         loop {
+    //             let msg = websocket.read_message().unwrap();
+
+    //             if msg.is_binary() {
+    //                 // If cmd 'f'
+    //                 // Grab latest frame from channel
+    //                 // Encode and send back in this thread
+    //                 // let frames: Vec<grabber::Frame> = capturer_channel_receiver.iter().collect();
+    //                 // let frame = frames.last();
+    //                 web_channel_sender.send(1).unwrap();
+    //             }
+    //         }
+    //     });
+    // }
 }
