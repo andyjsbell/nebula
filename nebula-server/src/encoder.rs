@@ -227,14 +227,29 @@ impl Encoder {
                 }
             }
 
-            let pkt: *mut sys::AVPacket = std::ptr::null_mut();
-            sys::av_init_packet(pkt);
-            // (*pkt).data = std::ptr::null_mut();    // packet data will be allocated by the encoder
-            (*pkt).size = 0;
+            // In Rust we have to zero out the structure, you can use Default trait or MaybeUninit as well
+            let mut pkt = sys::AVPacket {
+                buf: std::ptr::null_mut(),
+                pts: 0,
+                dts: 0,
+                data: std::ptr::null_mut(),
+                size: 0,
+                stream_index: 0,
+                flags: 0,
+                side_data: std::ptr::null_mut(),
+                side_data_elems: 0,
+                duration: 0,
+                pos: 0,
+                convergence_duration: 0,
+            };
+
+            sys::av_init_packet(&mut pkt);
+            pkt.data = std::ptr::null_mut();    // packet data will be allocated by the encoder
+            pkt.size = 0;
 
             let mut got_output: i32 = 0;
             
-            let r = sys::avcodec_encode_video2(self.codec_context, pkt, in_frame, &mut got_output);
+            let r = sys::avcodec_encode_video2(self.codec_context, &mut pkt, in_frame, &mut got_output);
 
             if r >= 0 && got_output > 0
             {
@@ -247,12 +262,12 @@ impl Encoder {
                     codec: Codec::H264X264,
                     width: frame.resolution.0 as u16,
                     height: frame.resolution.1 as u16, 
-                    data: Vec::from_raw_parts(  (*pkt).data, 
-                                                (*pkt).size as usize,
-                                                (*pkt).size as usize),
+                    data: Vec::from_raw_parts(  pkt.data, 
+                                                pkt.size as usize,
+                                                pkt.size as usize),
                 };
                 
-                sys::av_packet_unref(pkt);
+                sys::av_packet_unref(&mut pkt);
 
                 return Ok(encoded_frame);
             }
