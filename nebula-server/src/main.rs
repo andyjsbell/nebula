@@ -9,6 +9,8 @@ use std::net::TcpListener;
 use tungstenite::server::accept;
 use crossbeam_channel::bounded;
 use std::sync::Arc;
+use std::fs::File;
+use std::io::Write;
 
 mod encoder;
 mod grabber;
@@ -90,11 +92,13 @@ fn main() {
     
     // Simple console readline to encode screen frame
     let mut line = String::new();
+    let mut file_out = std::fs::File::create("video.bin").unwrap();
     loop {
         let b1 = std::io::stdin().read_line(&mut line).unwrap();
         web_channel_sender.send(1).unwrap();
         let encoded_frame = encoder_channel_receiver.recv().unwrap();
-        println!("{:?}", encoded_frame)
+        println!("{:?}", encoded_frame);
+        file_out.write(&encoded_frame.data).unwrap();
     }
     
     // Create server and block on connections which are spawned into own thread
