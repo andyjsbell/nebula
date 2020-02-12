@@ -46,9 +46,35 @@ fn number_of_threads(width: u32, height: u32, number_of_cores:u8) -> i32 {
     }
 }
 
+pub enum Codec {
+    H264X264,
+}
+
+#[derive(Debug)]
+pub enum EncodeError {
+    Initialised,
+    Encode,
+    Format
+}
+
+pub struct EncodedFrame {
+    pub size: u32,
+    pub magic: u32,
+    pub version: u32,
+    pub capture_time: u32,
+    pub encoded_time: u32,
+    pub codec: Codec,
+    pub width: u16,
+    pub height: u16,
+    pub data: Vec<u8>,
+}
+
 pub struct Encoder {
     codec: *mut AVCodec,
-    codec_context: * mut AVCodecContext,
+    codec_context: *mut AVCodecContext,
+    initialised: bool,
+    pts: i64,
+    sws_context: *mut SwsContext,
 }
 
 impl Encoder {
@@ -57,6 +83,9 @@ impl Encoder {
         Encoder {
             codec: std::ptr::null_mut(),
             codec_context: std::ptr::null_mut(),
+            initialised: false,
+            pts: 0,
+            sws_context: std::ptr::null_mut(),
         }
     }
 
