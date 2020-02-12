@@ -97,8 +97,9 @@ fn main() {
         let b1 = std::io::stdin().read_line(&mut line).unwrap();
         web_channel_sender.send(1).unwrap();
         let encoded_frame = encoder_channel_receiver.recv().unwrap();
-        println!("{:?}", encoded_frame);
+        println!("Encoded frame, writing to file");
         file_out.write(&encoded_frame.data).unwrap();
+        file_out.flush();
     }
     
     // Create server and block on connections which are spawned into own thread
