@@ -48,7 +48,7 @@ fn main() {
                 let now = Instant::now();
 
                 match grabber::get_output_bits() {
-                    None => println!("Failed to get frame"),
+                    None => (),
                     Some(frame) => {
                         
                         capturer_channel_sender.send(frame).unwrap();
@@ -104,7 +104,8 @@ fn main() {
     // }
     
     // Create server and block on connections which are spawned into own thread
-    let server = TcpListener::bind("127.0.0.1:9001").unwrap();
+    println!("Running websocket server...");
+    let server = TcpListener::bind("0.0.0.0:9001").expect("Unable to open on 0.0.0.0:9001");
     
     for stream in server.incoming() {
         
@@ -118,16 +119,14 @@ fn main() {
                 let msg = websocket.read_message().unwrap();
 
                 if msg.is_binary() {
-                    println!("message received");
                     // If cmd 'f'
                     // Grab latest frame from channel
+
                     let d = msg.into_data();
                     if d[0] == 'f' as u8 { 
-                        println!("command 'f'");
                         web_channel_sender.send(1).unwrap();
                         let encoded_frame = encoder_channel_receiver.recv().unwrap();
                         if websocket.can_write() {
-                            println!("writing encoded frame");
                             let message = Message::Binary(encoded_frame.data);
                             websocket.write_message(message).expect("Unable to write frame to socket");
                         }
