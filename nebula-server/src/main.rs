@@ -121,9 +121,6 @@ fn main() {
                     println!("message received");
                     // If cmd 'f'
                     // Grab latest frame from channel
-                    // Encode and send back in this thread
-                    // let frames: Vec<grabber::Frame> = capturer_channel_receiver.iter().collect();
-                    // let frame = frames.last();
                     let d = msg.into_data();
                     if d[0] == 'f' as u8 { 
                         println!("command 'f'");
