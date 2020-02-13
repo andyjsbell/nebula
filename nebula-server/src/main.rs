@@ -5,8 +5,8 @@ extern crate chrono;
 
 use std::time::{Instant};
 use std::{thread};
-use std::net::TcpListener;
-use tungstenite::server::accept;
+// use std::net::TcpListener;
+// use tungstenite::server::accept;
 use crossbeam_channel::bounded;
 use std::sync::Arc;
 // use std::fs::File;
@@ -99,7 +99,7 @@ fn main() {
         let encoded_frame = encoder_channel_receiver.recv().unwrap();
         println!("Encoded frame, writing to file");
         file_out.write(&encoded_frame.data).unwrap();
-        file_out.flush();
+        file_out.flush().unwrap();
     }
     
     // Create server and block on connections which are spawned into own thread
