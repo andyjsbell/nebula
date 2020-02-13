@@ -82,7 +82,7 @@ fn main() {
                 let requested = web_channel_receiver.recv().unwrap();
                 if requested == 1 {
                     let encoded_frame = e.encode_frame(captured_frame).unwrap();
-                    encoder_channel_sender.send(encoded_frame);
+                    encoder_channel_sender.send(encoded_frame).unwrap();
                 }
             }
         };
@@ -94,7 +94,7 @@ fn main() {
     let mut line = String::new();
     let mut file_out = std::fs::File::create("video.bin").unwrap();
     loop {
-        let b1 = std::io::stdin().read_line(&mut line).unwrap();
+        let _ = std::io::stdin().read_line(&mut line).unwrap();
         web_channel_sender.send(1).unwrap();
         let encoded_frame = encoder_channel_receiver.recv().unwrap();
         println!("Encoded frame, writing to file");
