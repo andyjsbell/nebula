@@ -5,12 +5,13 @@ extern crate chrono;
 
 use std::time::{Instant};
 use std::{thread};
-// use std::net::TcpListener;
-// use tungstenite::server::accept;
+use std::net::TcpListener;
+use tungstenite::server::accept;
+use tungstenite::Message;
 use crossbeam_channel::bounded;
 use std::sync::Arc;
 // use std::fs::File;
-use std::io::Write;
+// use std::io::Write;
 
 mod encoder;
 mod grabber;
@@ -21,12 +22,12 @@ fn main() {
 
     let (capturer_channel_sender, capturer_channel_receiver) = bounded(0);
     let (_web_channel_sender, web_channel_receiver) = bounded(1); // Block on web requests
-    let (encoder_channel_sender, encoder_channel_receiver) = bounded(1); // One encoded frame at a time
+    let (encoder_channel_sender, _encoder_channel_receiver) = bounded(1); // One encoded frame at a time
     
     let fps: u64 = 60;
 
     let web_channel_sender = Arc::new(_web_channel_sender);  // Create a referenced count
-
+    let encoder_channel_receiver = Arc::new(_encoder_channel_receiver);  // Create a referenced count
     // Grabber scope
     let grabber;
     {   
@@ -91,40 +92,51 @@ fn main() {
     thread::spawn(encoder_thread);
     
     // Simple console readline to encode screen frame
-    let mut line = String::new();
-    let mut file_out = std::fs::File::create("video.bin").unwrap();
-    loop {
-        let _ = std::io::stdin().read_line(&mut line).unwrap();
-        web_channel_sender.send(1).unwrap();
-        let encoded_frame = encoder_channel_receiver.recv().unwrap();
-        println!("Encoded frame, writing to file");
-        file_out.write(&encoded_frame.data).unwrap();
-        file_out.flush().unwrap();
-    }
+    // let mut line = String::new();
+    // let mut file_out = std::fs::File::create("video.bin").unwrap();
+    // loop {
+    //     let _ = std::io::stdin().read_line(&mut line).unwrap();
+    //     web_channel_sender.send(1).unwrap();
+    //     let encoded_frame = encoder_channel_receiver.recv().unwrap();
+    //     println!("Encoded frame, writing to file");
+    //     file_out.write(&encoded_frame.data).unwrap();
+    //     file_out.flush().unwrap();
+    // }
     
     // Create server and block on connections which are spawned into own thread
-    // let server = TcpListener::bind("127.0.0.1:9001").unwrap();
+    let server = TcpListener::bind("127.0.0.1:9001").unwrap();
     
-    // for stream in server.incoming() {
+    for stream in server.incoming() {
         
-    //     let web_channel_sender = Arc::clone(&web_channel_sender);
-        
-    //     thread::spawn (move || {
+        let web_channel_sender = Arc::clone(&web_channel_sender);
+        let encoder_channel_receiver = Arc::clone(&encoder_channel_receiver);
+        thread::spawn (move || {
             
-    //         let mut websocket = accept(stream.unwrap()).unwrap();
+            let mut websocket = accept(stream.unwrap()).unwrap();
             
-    //         loop {
-    //             let msg = websocket.read_message().unwrap();
+            loop {
+                let msg = websocket.read_message().unwrap();
 
-    //             if msg.is_binary() {
-    //                 // If cmd 'f'
-    //                 // Grab latest frame from channel
-    //                 // Encode and send back in this thread
-    //                 // let frames: Vec<grabber::Frame> = capturer_channel_receiver.iter().collect();
-    //                 // let frame = frames.last();
-    //                 web_channel_sender.send(1).unwrap();
-    //             }
-    //         }
-    //     });
-    // }
+                if msg.is_binary() {
+                    println!("message received");
+                    // If cmd 'f'
+                    // Grab latest frame from channel
+                    // Encode and send back in this thread
+                    // let frames: Vec<grabber::Frame> = capturer_channel_receiver.iter().collect();
+                    // let frame = frames.last();
+                    let d = msg.into_data();
+                    if d[0] == 'f' as u8 { 
+                        println!("command 'f'");
+                        web_channel_sender.send(1).unwrap();
+                        let encoded_frame = encoder_channel_receiver.recv().unwrap();
+                        if websocket.can_write() {
+                            println!("writing encoded frame");
+                            let message = Message::Binary(encoded_frame.data);
+                            websocket.write_message(message).expect("Unable to write frame to socket");
+                        }
+                    }
+                }
+            }
+        });
+    }
 }
