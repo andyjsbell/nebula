@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "nebula-client"
+		},
+		{
+			"path": "nebula-wasm"
 		}
 	],
 	"settings": {}
