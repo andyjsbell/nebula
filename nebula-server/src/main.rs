@@ -121,12 +121,14 @@ fn main() {
                 if msg.is_binary() {
                     // If cmd 'f'
                     // Grab latest frame from channel
-
+                    println!("binary received");
                     let d = msg.into_data();
-                    if d[0] == 'f' as u8 { 
+                    if d[0] == 'f' as u8 {  
+                        println!("cmd 'f'");
                         web_channel_sender.send(1).unwrap();
                         let encoded_frame = encoder_channel_receiver.recv().unwrap();
                         if websocket.can_write() {
+                            println!("can write");
                             let message = Message::Binary(encoded_frame.data);
                             websocket.write_message(message).expect("Unable to write frame to socket");
                         }
