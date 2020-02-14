@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "nebula-wasm"
+		},
+		{
+			"path": "nebula-wasm-app"
 		}
 	],
 	"settings": {}
