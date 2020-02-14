@@ -7,8 +7,7 @@
     "start": "webpack-dev-server"
   },
   "author": "Andy Bell <andy.bell@displaynote.com>",
-  
-  "dependencies": {                     
+  "dependencies": {
     "nebula-wasm-app": "file:../pkg"
   },
   "devDependencies": {

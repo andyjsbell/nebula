@@ -1,7 +1,7 @@
 mod utils;
 
 use wasm_bindgen::prelude::*;
-
+use web_sys::{ErrorEvent, MessageEvent, WebSocket};
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
 #[cfg(feature = "wee_alloc")]
@@ -15,5 +15,11 @@ extern {
 
 #[wasm_bindgen]
 pub fn greet() {
-    alert("Hello, nebula-wasm-app!");
+    alert("Hello there, nebula-wasm-app!");
+}
+
+#[wasm_bindgen]
+pub fn open_connection() {
+    let ws = WebSocket::new("ws://localhost:9001/socket");
+    alert("Web socket open");
 }
