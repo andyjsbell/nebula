@@ -30,14 +30,6 @@ pub fn greet() {
     alert("Hello there, nebula-wasm-app!");
 }
 
-// #[wasm_bindgen(start)]
-// pub fn open_connection() {
-//     console_log!("open_connection called");
-//     let ws = WebSocket::new("ws://localhost:9001/socket");
-//     console_log!("message event, received data: {:?}", ws);
-    
-// }
-
 #[wasm_bindgen(start)]
 pub fn start_websocket() -> Result<(), JsValue> {
     // Connect to an echo server
@@ -73,12 +65,6 @@ pub fn start_websocket() -> Result<(), JsValue> {
     let cloned_ws = ws.clone();
     let onopen_callback = Closure::wrap(Box::new(move |_| {
         console_log!("socket opened");
-        
-        
-        // match cloned_ws.send_with_str("ping") {
-        //     Ok(_) => console_log!("message successfully sent"),
-        //     Err(err) => console_log!("error sending message: {:?}", err),
-        // }
         let mut cmd : [u8;1] = ['f' as u8];
         match cloned_ws.send_with_u8_array(&mut cmd) {
             Ok(_) => console_log!("message successfully sent"),
