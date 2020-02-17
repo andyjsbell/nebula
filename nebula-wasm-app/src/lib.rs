@@ -20,21 +20,10 @@ extern "C" {
     fn log(s: &str);
 }
 
-#[wasm_bindgen]
-extern {
-    fn alert(s: &str);
-}
-
-#[wasm_bindgen]
-pub fn greet() {
-    alert("Hello there, nebula-wasm-app!");
-}
-
 #[wasm_bindgen(start)]
 pub fn start_websocket() -> Result<(), JsValue> {
-    // Connect to an echo server
+    // Connect to an nebula server
     let ws = WebSocket::new("ws://localhost:9001/socket")?;
-
     {
         let cloned_ws = ws.clone();
         // create callback
