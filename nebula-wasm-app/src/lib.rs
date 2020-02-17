@@ -2,6 +2,7 @@ mod utils;
 
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
+use js_sys::Uint8Array;
 use web_sys::{ErrorEvent, Event, EventTarget, SourceBuffer, MessageEvent, WebSocket, Blob, MediaSource, Url};
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
@@ -48,9 +49,9 @@ pub fn run() -> Result<(), JsValue> {
         // get buffer from socket, wait...
         // TODO 
         // append buffer
-
+        start_websocket(source_buffer);
         // Check updating
-        let updating = source_buffer.updating();
+        // let updating = source_buffer.updating();
 
     }) as Box<dyn FnMut(Event)>);
 
@@ -71,7 +72,7 @@ pub fn run() -> Result<(), JsValue> {
     Ok(())
 }
 
-pub fn start_websocket() -> Result<(), JsValue> {
+pub fn start_websocket(source_buffer: SourceBuffer) -> Result<(), JsValue> {
     // Connect to an nebula server
     let ws = WebSocket::new("ws://localhost:9001/socket")?;
     {
@@ -81,8 +82,14 @@ pub fn start_websocket() -> Result<(), JsValue> {
 
             // handle message
             let response = e.data();
-            let blob = Blob::from(response);
-            console_log!("message received {:?}", blob.size());
+            console_log!("{:?}", response);
+            // let blob = Blob::from(response);
+            let a = Uint8Array::from(response);
+            // console_log!("message received {:?}", blob.size());
+            // let array_buffer = blob.array_buffer();
+            // console_log!("array buffer read: {:?}", array_buffer);
+            source_buffer.append_buffer_with_array_buffer(&a.buffer()).expect("Failed to write buffer");
+
             let mut cmd : [u8;1] = ['f' as u8];
             match cloned_ws.send_with_u8_array(&mut cmd) {
                 Ok(_) => console_log!("message successfully sent"),
