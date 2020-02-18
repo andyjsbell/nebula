@@ -33,6 +33,7 @@ wasm-bindgen-test = "0.2"
 [profile.release]
 # Tell `rustc` to optimize for small code size.
 opt-level = "s"
+# debug = true
 
 [dependencies.web-sys]
 version = "0.3.22"
@@ -51,5 +52,6 @@ features = [
   'Window',
   "Url",
   "EventTarget",
+  "FileReader",
 ]
 

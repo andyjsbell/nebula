@@ -3,7 +3,7 @@ mod utils;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use js_sys::Uint8Array;
-use web_sys::{ErrorEvent, Event, EventTarget, SourceBuffer, MessageEvent, WebSocket, Blob, MediaSource, Url};
+use web_sys::{ErrorEvent, Event, FileReader, EventTarget, SourceBuffer, MessageEvent, WebSocket, Blob, MediaSource, Url};
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -35,10 +35,11 @@ impl Player {
 
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), JsValue> {
+    
     let window = web_sys::window().expect("no global `window` exists");
     let document = window.document().expect("should have a document on window");
     
-    let sourceopen_callback = Closure::wrap(Box::new(move |e: Event| {
+    let sourceopen_callback = Closure::wrap(Box::new(|e: Event| {
 
         console_log!("source open");
 
@@ -46,10 +47,11 @@ pub fn run() -> Result<(), JsValue> {
         let et = e.target().unwrap();
         let media_source = JsCast::unchecked_ref::<MediaSource>(&et);
         let source_buffer = media_source.add_source_buffer(mime).unwrap();
+        
         // get buffer from socket, wait...
         // TODO 
         // append buffer
-        start_websocket(source_buffer);
+        start_websocket(source_buffer).unwrap();
         // Check updating
         // let updating = source_buffer.updating();
 
@@ -73,29 +75,47 @@ pub fn run() -> Result<(), JsValue> {
 }
 
 pub fn start_websocket(source_buffer: SourceBuffer) -> Result<(), JsValue> {
+    
     // Connect to an nebula server
     let ws = WebSocket::new("ws://localhost:9001/socket")?;
     {
         let cloned_ws = ws.clone();
+
+        let onload_callback = Closure::wrap(Box::new(move |ev: Event| {
+            let et = ev.target().unwrap();
+            let file_reader = JsCast::unchecked_ref::<FileReader>(&et);
+            console_log!("on load of file reader {:?}", file_reader);
+            let a : Uint8Array = Uint8Array::new(&file_reader.result().expect("unable to read result from filereader"));
+            console_log!("array length {}", a.length());
+            
+            // source_buffer.append_buffer_with_array_buffer(&a.buffer()).unwrap();
+
+            let mut cmd : [u8;1] = ['f' as u8];
+
+            match cloned_ws.send_with_u8_array(&mut cmd) {
+                Ok(_) => console_log!("message successfully sent"),
+                Err(err) => console_log!("error sending message: {:?}", err),
+            }
+        }) as Box<dyn FnMut(Event)>);
+
         // create callback
         let onmessage_callback = Closure::wrap(Box::new(move |e: MessageEvent| {
 
             // handle message
             let response = e.data();
-            console_log!("{:?}", response);
-            // let blob = Blob::from(response);
-            let a = Uint8Array::from(response);
-            // console_log!("message received {:?}", blob.size());
-            // let array_buffer = blob.array_buffer();
-            // console_log!("array buffer read: {:?}", array_buffer);
-            source_buffer.append_buffer_with_array_buffer(&a.buffer()).expect("Failed to write buffer");
+            let blob = Blob::from(response);
+            // Load blob into file reader and when ready write into source buffer
+            let file_reader = FileReader::new().expect("Unable to create filereader");
+            file_reader.set_onload(Some(onload_callback.as_ref().unchecked_ref()));
+            // forget the callback to keep it alive
+            
+            file_reader.read_as_array_buffer(&blob).expect("failed to read as array buffer");    
 
-            let mut cmd : [u8;1] = ['f' as u8];
-            match cloned_ws.send_with_u8_array(&mut cmd) {
-                Ok(_) => console_log!("message successfully sent"),
-                Err(err) => console_log!("error sending message: {:?}", err),
-            }
         }) as Box<dyn FnMut(MessageEvent)>);
+        
+        // Commented out as causing compilation issue, not sure if this is needed...
+        // onload_callback.forget();            
+        
         // set message event handler on WebSocket
         ws.set_onmessage(Some(onmessage_callback.as_ref().unchecked_ref()));
         // forget the callback to keep it alive
