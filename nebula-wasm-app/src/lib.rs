@@ -1,4 +1,5 @@
 mod utils;
+mod mp4;
 
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
@@ -36,7 +37,8 @@ impl Player {
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), JsValue> {
     
-    let window = web_sys::window().expect("no global `window` exists");
+    let window = web_sys::window().expect("no global `win
+    dow` exists");
     let document = window.document().expect("should have a document on window");
     
     let sourceopen_callback = Closure::wrap(Box::new(|e: Event| {
@@ -47,13 +49,8 @@ pub fn run() -> Result<(), JsValue> {
         let et = e.target().unwrap();
         let media_source = JsCast::unchecked_ref::<MediaSource>(&et);
         let source_buffer = media_source.add_source_buffer(mime).unwrap();
-        
-        // get buffer from socket, wait...
-        // TODO 
-        // append buffer
+    
         start_websocket(source_buffer).unwrap();
-        // Check updating
-        // let updating = source_buffer.updating();
 
     }) as Box<dyn FnMut(Event)>);
 
