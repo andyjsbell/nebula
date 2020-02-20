@@ -90,8 +90,8 @@ impl Default for Constants {
         }
     }
 }
-const MP4_TYPES: Types = Types::default();
-const MP4_CONST: Constants = Constants::default();
+// const MP4_TYPES: Types = Types::default();
+// const MP4_CONST: Constants = Constants::default();
 
 pub struct MP4 {
     pub video_hdlr : [u8; 37],
@@ -197,15 +197,25 @@ impl Default for MP4 {
     }
 }
 
-pub fn create_box(mp4_type: [u8; 4], payload: Vec<Vec<u8>>) -> Vec<u8> {
-    // let size = 8;
-    // let i = payload.len();
-    // let len = i;
-    // let result = 0;
+pub fn create_box(mp4_type: [u8; 4], payload: Vec<&[u8]>) -> Vec<u8> {
+    let mut size: usize = 8;
+    let i = payload.len();
+    let len = i;
+    
+    for item in payload {
+        size = size + item.len();
+    }
 
+    let mut result : Vec<u8> = vec![0; size];
+    result.push(size as u8 >> 24 & 0xff);
+    result.push(size as u8 >> 16 & 0xff);
+    result.push(size as u8 >> 8 & 0xff);
+    result.push(size as u8 & 0xff);
+    
     // let a: [u8; 4] = [0,0,0,0];
     // let b: [u8; 2] = [0,0];
     
     // let v: Vec<&[u8]> = [&a[..], &b[..]];
 
+    result
 }
