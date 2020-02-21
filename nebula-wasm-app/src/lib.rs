@@ -79,7 +79,12 @@ pub fn start_websocket(media_source: &MediaSource) -> Result<(), JsValue> {
                 mp4::init_segment(vec![t], 0xffffffff, 1000);
                 *INITIALIZED.lock().unwrap() = true;
             } else {
-
+                let t = mp4::Track::new();
+                let sequence_number = 0; // this needs to increase on each atom
+                let decode_time = 0;
+                let mut moof = mp4::moof(sequence_number, decode_time, &t);
+                let mut mdat = mp4::mdat([0,0,0,0]);
+                moof.append(&mut mdat);
             }
             // mp4::init_segment()
             // let mime = "video/mp4; codecs=\"avc1.42E01E\"";
