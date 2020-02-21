@@ -523,7 +523,7 @@ pub fn mvex(tracks: Vec<Track>) -> Vec<u8> {
     let mut boxes = Vec::new();
     let mut reversed_tracks = tracks.clone();
     reversed_tracks.reverse();
-    for track in reversed_tracks {{
+    for track in reversed_tracks {
         boxes.extend_from_slice(&(trex(&mut track)));
     }
 
