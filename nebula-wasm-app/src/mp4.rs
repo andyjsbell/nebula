@@ -206,6 +206,27 @@ pub struct Track {
     pub samples : Vec<Sample>,
 }
 
+impl Track {
+    pub fn new() -> Track {
+        Track {
+            id: 0,
+            track_type: String::from("video"),
+            duration: 1000,
+            timescale: 1000,
+            samples: vec![],
+            pps: vec![],
+            sps: vec![],
+            config: vec![],
+            width: 0,
+            height: 0,
+            audio_sample_rate: 0,
+            codec: String::from(""),
+            channel_count: 0,
+            volume: 0,
+        }
+    }
+}
+
 pub fn mdhd(timescale: u32, duration: u32) -> Vec<u8> {
     create_box(TYPE_MDHD, vec![&[
         0x00, // version 0
