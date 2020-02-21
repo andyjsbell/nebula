@@ -11,6 +11,7 @@ use web_sys::{ErrorEvent, Event, FileReader, EventTarget, SourceBuffer, MessageE
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+static INITIALIZED : bool = false;
 
 macro_rules! console_log {
     ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
@@ -32,13 +33,10 @@ pub fn run() -> Result<(), JsValue> {
     let sourceopen_callback = Closure::wrap(Box::new(|e: Event| {
 
         console_log!("source open");
-
-        let mime = "video/mp4; codecs=\"avc1.42E01E, mp4a.40.2\"";
         let et = e.target().unwrap();
         let media_source = JsCast::unchecked_ref::<MediaSource>(&et);
-        let source_buffer = media_source.add_source_buffer(mime).unwrap();
-    
-        start_websocket(source_buffer).unwrap();
+        
+        start_websocket(media_source).unwrap();
 
     }) as Box<dyn FnMut(Event)>);
 
@@ -59,7 +57,7 @@ pub fn run() -> Result<(), JsValue> {
     Ok(())
 }
 
-pub fn start_websocket(source_buffer: SourceBuffer) -> Result<(), JsValue> {
+pub fn start_websocket(media_source: &MediaSource) -> Result<(), JsValue> {
     
     // Connect to an nebula server
     let ws = WebSocket::new("ws://localhost:9001/socket")?;
@@ -73,6 +71,8 @@ pub fn start_websocket(source_buffer: SourceBuffer) -> Result<(), JsValue> {
             let a : Uint8Array = Uint8Array::new(&file_reader.result().expect("unable to read result from filereader"));
             console_log!("array length {}", a.length());
             
+            // let mime = "video/mp4; codecs=\"avc1.42E01E\"";
+            // let source_buffer = media_source.add_source_buffer(mime).unwrap();
             // source_buffer.append_buffer_with_array_buffer(&a.buffer()).unwrap();
 
             let mut cmd : [u8;1] = ['f' as u8];
