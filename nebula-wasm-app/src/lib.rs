@@ -22,18 +22,6 @@ extern "C" {
     fn log(s: &str);
 }
 
-#[derive(Debug)]
-pub struct Player {
-    pub media_source: MediaSource,
-}
-
-impl Player {
-
-    // pub fn new() -> Player {
-        
-    // }
-}
-
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), JsValue> {
     
