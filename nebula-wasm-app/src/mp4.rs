@@ -408,29 +408,29 @@ pub fn trun(track: &Track, offset: u32) -> Vec<u8> {
     let array_len = 12 + (16 * len);
     let off : u32 = offset + 8 + array_len;
 
-    let mut v = vec![
+    let mut v : Vec<u8> = vec![
         0x00, // version 0
         0x00, 0x0f, 0x01, // flags
-        (len >> 24) & 0xFF,
-        (len >> 16) & 0xFF,
-        (len >> 8) & 0xFF,
-        len & 0xFF, // sample_count
+        (len >> 24) as u8 & 0xFF,
+        (len >> 16) as u8 & 0xFF,
+        (len >> 8) as u8 & 0xFF,
+        len as u8 & 0xFF, // sample_count
         (off >> 24) as u8 & 0xFF,
         (off >> 16) as u8 & 0xFF,
         (off >> 8) as u8 & 0xFF,
-        off & 0xFF, // data_offset
+        off as u8 & 0xFF, // data_offset
     ];
     
     for sample in track.samples {
-        v.extend_from_slice([
-            (sample.duration >> 24) & 0xFF,
-            (sample.duration >> 16) & 0xFF,
-            (sample.duration >> 8) & 0xFF,
-            sample.duration & 0xFF, // sample_duration
-            (sample.size >> 24) & 0xFF,
-            (sample.size >> 16) & 0xFF,
-            (sample.size >> 8) & 0xFF,
-            sample.size & 0xFF, // sample_size
+        let s : [u8; 16] = [
+            (sample.duration >> 24) as u8 & 0xFF,
+            (sample.duration >> 16) as u8 & 0xFF,
+            (sample.duration >> 8) as u8 & 0xFF,
+            sample.duration as u8 & 0xFF, // sample_duration
+            (sample.size >> 24) as u8 & 0xFF,
+            (sample.size >> 16) as u8 & 0xFF,
+            (sample.size >> 8) as u8 & 0xFF,
+            sample.size as u8 & 0xFF, // sample_size
             ((sample.flags.is_leading << 2) as u8 | sample.flags.depends_on as u8).into(),
             (sample.flags.is_depended_on << 6) as u8 |
             (sample.flags.has_redundancy << 4) as u8 |
@@ -438,11 +438,12 @@ pub fn trun(track: &Track, offset: u32) -> Vec<u8> {
             sample.flags.is_non_sync as u8,
             sample.flags.degrad_prio & 0xF0 << 8,
             sample.flags.degrad_prio & 0x0F, // sample_flags
-            (sample.cts >> 24) & 0xFF,
-            (sample.cts >> 16) & 0xFF,
-            (sample.cts >> 8) & 0xFF,
-            sample.cts & 0xFF, // sample_composition_time_offset
-        ]);
+            (sample.cts >> 24) as u8 & 0xFF,
+            (sample.cts >> 16) as u8 & 0xFF,
+            (sample.cts >> 8) as u8 & 0xFF,
+            sample.cts as u8 & 0xFF, // sample_composition_time_offset
+        ];
+        v.extend_from_slice(&s);
     }
 
     create_box(TYPE_TRUN, vec![&v])
@@ -498,10 +499,10 @@ pub fn traf(track: &Track, base_media_decode_time: u32) -> Vec<u8> {
     ])
 }
 
-pub fn trak(track: &mut Track) -> Vec<u8> {
-    if track.duration == 0 {
-        track.duration = 0xffffffff;
-    }
+pub fn trak(track: &Track) -> Vec<u8> {
+    // if track.duration == 0 {
+    //     track.duration = 0xffffffff;
+    // }
     create_box(TYPE_TRAK, vec![&tkhd(&track), &mdia(&track)])
 }
 
@@ -511,7 +512,7 @@ pub fn moov(tracks: Vec<Track>, duration: u32, timescale: u32) -> Vec<u8> {
     let mut reversed_tracks = tracks.clone();
     reversed_tracks.reverse();
     for track in reversed_tracks {
-        boxes.extend_from_slice(&(trak(&mut track)));
+        boxes.extend_from_slice(&(trak(&track)));
     }
 
     vec![0]
@@ -524,7 +525,7 @@ pub fn mvex(tracks: Vec<Track>) -> Vec<u8> {
     let mut reversed_tracks = tracks.clone();
     reversed_tracks.reverse();
     for track in reversed_tracks {
-        boxes.extend_from_slice(&(trex(&mut track)));
+        boxes.extend_from_slice(&(trex(&track)));
     }
 
     vec![0]
@@ -588,7 +589,7 @@ pub fn tkhd(track: &Track) -> Vec<u8> {
 
 pub fn init_segment(tracks: Vec<Track>, duration: u32, timescale: u32) -> Vec<u8> {
     
-    let v = Vec::new();
+    let mut v = Vec::new();
     v.extend_from_slice(&ftyp());
     v.extend_from_slice(&moov(tracks, duration, timescale));
     v
