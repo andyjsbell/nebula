@@ -207,7 +207,6 @@ pub struct Track {
     pub samples : Vec<Sample>,
 }
 
-
 pub fn mdhd(timescale: u32, duration: u32) -> Vec<u8> {
     create_box(TYPE_MDHD, vec![&[
         0x00, // version 0
@@ -421,7 +420,7 @@ pub fn trun(track: &Track, offset: u32) -> Vec<u8> {
         off as u8 & 0xFF, // data_offset
     ];
     
-    for sample in track.samples {
+    for sample in &track.samples {
         let s : [u8; 16] = [
             (sample.duration >> 24) as u8 & 0xFF,
             (sample.duration >> 16) as u8 & 0xFF,
@@ -457,8 +456,8 @@ pub fn sdtp(track: &Track) -> Vec<u8> {
     
     let mut v = Vec::new();
 
-    for sample in track.samples {
-        let f = sample.flags;
+    for sample in &track.samples {
+        let f = &sample.flags;
         v.push(f.depends_on << 4);
         v.push(f.is_depended_on << 2);
         v.push(f.has_redundancy);
