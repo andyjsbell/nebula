@@ -5,13 +5,15 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use js_sys::Uint8Array;
 use web_sys::{ErrorEvent, Event, FileReader, EventTarget, SourceBuffer, MessageEvent, WebSocket, Blob, MediaSource, Url};
+use once_cell::sync::Lazy; // 1.3.1
+use std::sync::Mutex;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
-static INITIALIZED : bool = false;
+static INITIALIZED: Lazy<Mutex<bool>> = Lazy::new(|| Mutex::new(false));
 
 macro_rules! console_log {
     ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
@@ -71,6 +73,15 @@ pub fn start_websocket(media_source: &MediaSource) -> Result<(), JsValue> {
             let a : Uint8Array = Uint8Array::new(&file_reader.result().expect("unable to read result from filereader"));
             console_log!("array length {}", a.length());
             
+            // Break out into NAL UNITS
+            if *INITIALIZED.lock().unwrap() {
+                let t = mp4::Track::new();
+                mp4::init_segment(vec![t], 0xffffffff, 1000);
+                *INITIALIZED.lock().unwrap() = true;
+            } else {
+
+            }
+            // mp4::init_segment()
             // let mime = "video/mp4; codecs=\"avc1.42E01E\"";
             // let source_buffer = media_source.add_source_buffer(mime).unwrap();
             // source_buffer.append_buffer_with_array_buffer(&a.buffer()).unwrap();
