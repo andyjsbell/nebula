@@ -1,4 +1,3 @@
-
 pub const TYPE_AVC1: [u8; 4] = [ 97, 118, 99, 49 ];
 pub const TYPE_AVCC: [u8; 4] = [ 97, 118, 99, 67 ];
 pub const TYPE_BTRT: [u8; 4] = [ 98, 116, 114, 116 ];
@@ -514,8 +513,10 @@ pub fn moov(tracks: Vec<Track>, duration: u32, timescale: u32) -> Vec<u8> {
         boxes.extend_from_slice(&(trak(&track)));
     }
 
-    vec![0]
-    // return MP4.box.apply(null, [MP4.types.moov, MP4.mvhd(timescale, duration)].concat(boxes).concat(MP4.mvex(tracks)));
+    let mut v : Vec<u8> = mvhd(timescale, duration);
+    v.extend_from_slice(&boxes);
+    v.extend_from_slice(&mvex(tracks));
+    create_box(TYPE_MOOV, vec![&v])
 }
 
 pub fn mvex(tracks: Vec<Track>) -> Vec<u8> {
@@ -527,8 +528,46 @@ pub fn mvex(tracks: Vec<Track>) -> Vec<u8> {
         boxes.extend_from_slice(&(trex(&track)));
     }
 
-    vec![0]
-    // return MP4.box.apply(null, [MP4.types.mvex].concat(boxes));
+    create_box(TYPE_MVEX, vec![&boxes])
+}
+
+pub fn mvhd(timescale: u32, duration: u32) -> Vec<u8> {
+
+    create_box(TYPE_MVHD, vec![&[
+        0x00, // version 0
+        0x00, 0x00, 0x00, // flags
+        0x00, 0x00, 0x00, 0x01, // creation_time
+        0x00, 0x00, 0x00, 0x02, // modification_time
+        (timescale >> 24) as u8 & 0xFF,
+        (timescale >> 16) as u8 & 0xFF,
+        (timescale >> 8) as u8 & 0xFF,
+        timescale as u8 & 0xFF , // timescale
+        (duration >> 24) as u8 & 0xFF,
+        (duration >> 16) as u8 & 0xFF,
+        (duration >> 8) as u8 & 0xFF,
+        duration as u8 & 0xFF, // duration
+        0x00, 0x01, 0x00, 0x00, // 1.0 rate
+        0x01, 0x00, // 1.0 volume
+        0x00, 0x00, // reserved
+        0x00, 0x00, 0x00, 0x00, // reserved
+        0x00, 0x00, 0x00, 0x00, // reserved
+        0x00, 0x01, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x01, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x40, 0x00, 0x00, 0x00, // transformation: unity matrix
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, // pre_defined
+        0xff, 0xff, 0xff, 0xff, // next_track_ID
+    ]])
 }
 
 pub fn trex(track: &Track) -> Vec<u8> {
