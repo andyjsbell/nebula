@@ -170,11 +170,26 @@ pub fn mdat(data: [u8; 4]) -> Vec<u8> {
     create_box(TYPE_MDAT, vec![&data])
 }
 
-// pub fn stbl(track) {
-//     // create_box()
-//     // return MP4.box(MP4.types.stbl, MP4.stsd(track), MP4.box(MP4.types.stts, MP4.STTS), MP4.box(MP4.types.stsc, MP4.STSC), MP4.box(MP4.types.stsz, MP4.STSZ), MP4.box(MP4.types.stco, MP4.STCO));
-// }
+#[derive(Clone)]
+pub struct Flags {
+    pub is_leading: u8,
+    pub is_depended_on: u8,
+    pub has_redundancy: u8,
+    pub degrad_prio: u8,
+    pub is_non_sync: u8,
+    pub depends_on: u8,
+    pub padding_value: u8,
+}
 
+#[derive(Clone)]
+pub struct Sample {
+    pub size: u32,
+    pub duration: u32,
+    pub cts: u32,
+    pub flags: Flags,
+}
+
+#[derive(Clone)]
 pub struct Track {
     pub timescale: u32,
     pub duration: u32,
@@ -186,7 +201,12 @@ pub struct Track {
     pub audio_sample_rate: u32,
     pub channel_count: u32,
     pub config: Vec<u8>,
+    pub codec: String,
+    pub pps : Vec<u8>,
+    pub sps: Vec<u8>,
+    pub samples : Vec<Sample>,
 }
+
 
 pub fn mdhd(timescale: u32, duration: u32) -> Vec<u8> {
     create_box(TYPE_MDHD, vec![&[
@@ -231,24 +251,27 @@ pub fn mfhd(sequence_number: u32) -> Vec<u8> {
 pub fn minf(track: &Track) -> Vec<u8> {
     if track.track_type == "audio" {
         create_box(TYPE_MINF, vec![
-            &create_box(TYPE_SMHD, SMHD),
+            &create_box(TYPE_SMHD, vec![&SMHD]),
             &dinf(),
-            stbl(track)
+            &stbl(track)
         ])
     } else {
         create_box(TYPE_MINF, vec![
-            &create_box(TYPE_VMHD, VMHD),
+            &create_box(TYPE_VMHD, vec![&VMHD]),
             &dinf(),
-            stbl(track)
+            &stbl(track)
         ])
     }
 }
 
 pub fn stbl(track: &Track) -> Vec<u8> {
     create_box(TYPE_STBL, vec![
-        &st
-    ]);
-    // return MP4.box(MP4.types.stbl, MP4.stsd(track), MP4.box(MP4.types.stts, MP4.STTS), MP4.box(MP4.types.stsc, MP4.STSC), MP4.box(MP4.types.stsz, MP4.STSZ), MP4.box(MP4.types.stco, MP4.STCO));
+        &stsd(track),
+        &create_box(TYPE_STTS, vec![&STTS]),
+        &create_box(TYPE_STSC, vec![&STSC]),
+        &create_box(TYPE_STSZ, vec![&STSZ]),
+        &create_box(TYPE_STCO, vec![&STCO]),        
+    ])
 }
 
 pub fn stsd(track: &Track) -> Vec<u8> {
@@ -257,9 +280,7 @@ pub fn stsd(track: &Track) -> Vec<u8> {
             &STSD,
             &mp4a(track)
         ])
-        // return MP4.box(MP4.types.stsd, MP4.STSD, MP4.mp4a(track));
     } else {
-        // return MP4.box(MP4.types.stsd, MP4.STSD, MP4.avc1(track));
         create_box(TYPE_STSD, vec![
             &STSD,
             &avc1(track)
@@ -267,7 +288,7 @@ pub fn stsd(track: &Track) -> Vec<u8> {
     }
 }
 
-pub fn mp4a(track: &Track) {
+pub fn mp4a(track: &Track) -> Vec<u8> {
     create_box(TYPE_MP4A, vec![
         &[
             0x00, 0x00, 0x00, // reserved
@@ -283,14 +304,77 @@ pub fn mp4a(track: &Track) {
             track.audio_sample_rate as u8 & 0xff, //
             0x00, 0x00
         ],
-        create_box(TYPE_ESDS, vec![&esds(track)])
+        &create_box(TYPE_ESDS, vec![&esds(track)])
+    ])
+}
+
+pub fn avc1(track: &Track) -> Vec<u8> {
+    
+    let mut sps = Vec::new();
+    let mut pps = Vec::new();
+    
+    sps.push((track.sps.len() >> 8) as u8 & 0xff);
+    sps.push(track.sps.len() as u8 & 0xff);
+    sps.extend_from_slice(&track.sps);
+
+    pps.push((track.pps.len() >> 8) as u8 & 0xff);
+    pps.push(track.pps.len() as u8 & 0xff);
+    pps.extend_from_slice(&track.pps);
+
+    let mut p  = vec![
+        0x01,   // version
+        sps[3], // profile
+        sps[4], // profile compat
+        sps[5], // level
+        0xfc | 3, // lengthSizeMinusOne, hard-coded to 4 bytes
+        0xE0 | track.sps.len() as u8, // 3bit reserved (111) + numOfSequenceParameterSets
+    ];
+    p.extend_from_slice(&sps);
+    p.push(track.pps.len() as u8);
+    p.extend_from_slice(&pps);
+    
+    let avcc = create_box(TYPE_AVCC, vec![&p]);
+        
+    create_box(TYPE_AVCC, vec![&[
+        0x00, 0x00, 0x00, // reserved
+        0x00, 0x00, 0x00, // reserved
+        0x00, 0x01, // data_reference_index
+        0x00, 0x00, // pre_defined
+        0x00, 0x00, // reserved
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, // pre_defined
+        (track.width >> 8) as u8 & 0xFF,
+        track.width as u8 & 0xff, // width
+        (track.height >> 8) as u8 & 0xFF,
+        track.height as u8 & 0xff, // height
+        0x00, 0x48, 0x00, 0x00, // horizresolution
+        0x00, 0x48, 0x00, 0x00, // vertresolution
+        0x00, 0x00, 0x00, 0x00, // reserved
+        0x00, 0x01, // frame_count
+        0x12,
+        0x62, 0x69, 0x6E, 0x65, // binelpro.ru
+        0x6C, 0x70, 0x72, 0x6F,
+        0x2E, 0x72, 0x75, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, // compressorname
+        0x00, 0x18,   // depth = 24
+        0x11, 0x11], // pre_defined = -1
+        &avcc,
+        &create_box(TYPE_BTRT, vec![&[
+                    0x00, 0x1c, 0x9c, 0x80, // bufferSizeDB
+                    0x00, 0x2d, 0xc6, 0xc0, // maxBitrate
+                    0x00, 0x2d, 0xc6, 0xc0]]) // avgBitrate
     ])
 }
 
 pub fn esds(track: &Track) -> Vec<u8> {
 
     let config_length = track.config.len() as u8;
-    let v : Vec<u8> =  Vec::new();
+    let mut v : Vec<u8> =  Vec::new();
     v.extend_from_slice(&[
         0x00, // version 0
         0x00, 0x00, 0x00, // flags
@@ -312,28 +396,106 @@ pub fn esds(track: &Track) -> Vec<u8> {
         config_length,
     ]);
     
-    v.append(track.config);
+    v.extend_from_slice(&track.config);
     v.extend_from_slice(&[0x06, 0x01, 0x02]);
     
     v
 }
 
-pub fn moof(sequence_number: u32, base_media_decode_time: u32, track: Track) -> Vec<u8> {
-    // return MP4.box(MP4.types.moof, MP4.mfhd(sn), MP4.traf(track, baseMediaDecodeTime));
-    vec![0]
+pub fn trun(track: &Track, offset: u32) -> Vec<u8> {
+    
+    let len = track.samples.len() as u32;
+    let array_len = 12 + (16 * len);
+    let off : u32 = offset + 8 + array_len;
+
+    let mut v = vec![
+        0x00, // version 0
+        0x00, 0x0f, 0x01, // flags
+        (len >> 24) & 0xFF,
+        (len >> 16) & 0xFF,
+        (len >> 8) & 0xFF,
+        len & 0xFF, // sample_count
+        (off >> 24) as u8 & 0xFF,
+        (off >> 16) as u8 & 0xFF,
+        (off >> 8) as u8 & 0xFF,
+        off & 0xFF, // data_offset
+    ];
+    
+    for sample in track.samples {
+        v.extend_from_slice([
+            (sample.duration >> 24) & 0xFF,
+            (sample.duration >> 16) & 0xFF,
+            (sample.duration >> 8) & 0xFF,
+            sample.duration & 0xFF, // sample_duration
+            (sample.size >> 24) & 0xFF,
+            (sample.size >> 16) & 0xFF,
+            (sample.size >> 8) & 0xFF,
+            sample.size & 0xFF, // sample_size
+            ((sample.flags.is_leading << 2) as u8 | sample.flags.depends_on as u8).into(),
+            (sample.flags.is_depended_on << 6) as u8 |
+            (sample.flags.has_redundancy << 4) as u8 |
+            (sample.flags.padding_value << 1) as u8 |
+            sample.flags.is_non_sync as u8,
+            sample.flags.degrad_prio & 0xF0 << 8,
+            sample.flags.degrad_prio & 0x0F, // sample_flags
+            (sample.cts >> 24) & 0xFF,
+            (sample.cts >> 16) & 0xFF,
+            (sample.cts >> 8) & 0xFF,
+            sample.cts & 0xFF, // sample_composition_time_offset
+        ]);
+    }
+
+    create_box(TYPE_TRUN, vec![&v])
 }
 
-pub fn moov(tracks: Vec<Track>, duration: u32, timescale: u32) -> Vec<u8> {
-    // var
-    //     i = tracks.length,
-    //     boxes = [];
+pub fn moof(sequence_number: u32, base_media_decode_time: u32, track: &Track) -> Vec<u8> {
+    create_box(TYPE_MOOF, vec![&mfhd(sequence_number), &traf(track, base_media_decode_time)])
+}
 
-    // while (i--) {
-    //     boxes[i] = MP4.trak(tracks[i]);
-    // }
+pub fn sdtp(track: &Track) -> Vec<u8> {
+    
+    let mut v = Vec::new();
 
-    // return MP4.box.apply(null, [MP4.types.moov, MP4.mvhd(timescale, duration)].concat(boxes).concat(MP4.mvex(tracks)));
-    vec![0]
+    for sample in track.samples {
+        let f = sample.flags;
+        v.push(f.depends_on << 4);
+        v.push(f.is_depended_on << 2);
+        v.push(f.has_redundancy);
+    }
+    
+    create_box(TYPE_SDTP, vec![&v])
+}
+
+pub fn traf(track: &Track, base_media_decode_time: u32) -> Vec<u8> {
+    
+    let sample_dependency_table = sdtp(track);
+
+    create_box(TYPE_TRAF, vec![
+        &create_box(TYPE_TFHD, vec![&[
+            0x00, // version 0
+            0x00, 0x00, 0x00, // flags
+            (track.id >> 24) as u8,
+            (track.id >> 16) as u8 & 0xff,
+            (track.id >> 8) as u8 & 0xff,
+            (track.id & 0xFF) as u8 , // track_ID
+        ]]),
+        &create_box(TYPE_TFDT, vec![&[
+            0x00, // version 0
+            0x00, 0x00, 0x00, // flags
+            (base_media_decode_time >> 24) as u8,
+            (base_media_decode_time >> 16) as u8 & 0xff,
+            (base_media_decode_time >> 8) as u8 & 0xff,
+            (base_media_decode_time as u8 & 0xFF), // baseMediaDecodeTime
+        ]]), 
+        &trun(track, sample_dependency_table.len() as u32 +
+        16 + // tfhd
+        16 + // tfdt
+        8 +  // traf header
+        16 + // mfhd
+        8 +  // moof header
+        8),
+        &sample_dependency_table,       
+    ])
 }
 
 pub fn trak(track: &mut Track) -> Vec<u8> {
@@ -341,6 +503,48 @@ pub fn trak(track: &mut Track) -> Vec<u8> {
         track.duration = 0xffffffff;
     }
     create_box(TYPE_TRAK, vec![&tkhd(&track), &mdia(&track)])
+}
+
+pub fn moov(tracks: Vec<Track>, duration: u32, timescale: u32) -> Vec<u8> {
+
+    let mut boxes = Vec::new();
+    let mut reversed_tracks = tracks.clone();
+    reversed_tracks.reverse();
+    for track in reversed_tracks {
+        boxes.extend_from_slice(&(trak(&mut track)));
+    }
+
+    vec![0]
+    // return MP4.box.apply(null, [MP4.types.moov, MP4.mvhd(timescale, duration)].concat(boxes).concat(MP4.mvex(tracks)));
+}
+
+pub fn mvex(tracks: Vec<Track>) -> Vec<u8> {
+
+    let mut boxes = Vec::new();
+    let mut reversed_tracks = tracks.clone();
+    reversed_tracks.reverse();
+    for track in reversed_tracks {{
+        boxes.extend_from_slice(&(trex(&mut track)));
+    }
+
+    vec![0]
+    // return MP4.box.apply(null, [MP4.types.mvex].concat(boxes));
+}
+
+pub fn trex(track: &Track) -> Vec<u8> {
+    
+    create_box(TYPE_TREX, vec![&[
+        0x00, // version 0
+        0x00, 0x00, 0x00, // flags
+        (track.id >> 24) as u8,
+        (track.id >> 16) as u8 & 0xff,
+        (track.id >> 8) as u8 & 0xff,
+        (track.id as u8 & 0xFF), // track_ID
+        0x00, 0x00, 0x00, 0x01, // default_sample_description_index
+        0x00, 0x00, 0x00, 0x00, // default_sample_duration
+        0x00, 0x00, 0x00, 0x00, // default_sample_size
+        0x00, 0x01, 0x00, 0x01, // default_sample_flags
+    ]])
 }
 
 pub fn tkhd(track: &Track) -> Vec<u8> {
@@ -380,4 +584,12 @@ pub fn tkhd(track: &Track) -> Vec<u8> {
         track.height as u8 & 0xFF,
         0x00, 0x00, // height
     ]])
+}
+
+pub fn init_segment(tracks: Vec<Track>, duration: u32, timescale: u32) -> Vec<u8> {
+    
+    let v = Vec::new();
+    v.extend_from_slice(&ftyp());
+    v.extend_from_slice(&moov(tracks, duration, timescale));
+    v
 }
