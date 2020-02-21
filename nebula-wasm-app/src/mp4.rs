@@ -37,115 +37,108 @@ pub const TYPE_SMHD: [u8; 4] = [ 115, 109, 104, 100 ];
 pub const MAJOR_BRAND: [u8; 4] = [105, 115, 111, 109]; 
 pub const AVC1_BRAND: [u8; 4] = [97, 118, 99, 49];
 pub const MINOR_VESION: [u8; 4] = [0, 0, 0, 1]; 
+pub const VIDEO_HDLR : [u8; 37] = [
+    0x00, // version 0
+    0x00, 0x00, 0x00, // flags
+    0x00, 0x00, 0x00, 0x00, // pre_defined
+    0x76, 0x69, 0x64, 0x65, // handler_type: 'vide'
+    0x00, 0x00, 0x00, 0x00, // reserved
+    0x00, 0x00, 0x00, 0x00, // reserved
+    0x00, 0x00, 0x00, 0x00, // reserved
+    0x56, 0x69, 0x64, 0x65,
+    0x6f, 0x48, 0x61, 0x6e,
+    0x64, 0x6c, 0x65, 0x72, 0x00, // name: 'VideoHandler'
+];
 
-pub struct MP4 {
-    pub video_hdlr : [u8; 37],
-    pub audio_hdlr : [u8; 37],
-    pub dref: [u8; 20],
-    pub stco: [u8; 8],
-    pub stts: [u8; 8],
-    pub stsc: [u8; 8],
-    pub stsz: [u8; 12],
-    pub vmhd: [u8; 12],
-    pub smhd: [u8; 8],
-    pub stsd: [u8; 8],    
-    pub ftyp: Vec<u8>,
-    pub dinf: Vec<u8>,
+pub const AUDIO_HDLR : [u8; 37] = [
+    0x00, // version 0
+    0x00, 0x00, 0x00, // flags
+    0x00, 0x00, 0x00, 0x00, // pre_defined
+    0x73, 0x6f, 0x75, 0x6e, // handler_type: 'soun'
+    0x00, 0x00, 0x00, 0x00, // reserved
+    0x00, 0x00, 0x00, 0x00, // reserved
+    0x00, 0x00, 0x00, 0x00, // reserved
+    0x53, 0x6f, 0x75, 0x6e,
+    0x64, 0x48, 0x61, 0x6e,
+    0x64, 0x6c, 0x65, 0x72, 0x00, // name: 'SoundHandler'
+]; 
+
+pub const SMHD : [u8; 8] = [
+    0x00, // version
+    0x00, 0x00, 0x00, // flags
+    0x00, 0x00, // balance
+    0x00, 0x00, // reserved
+];
+
+pub const DREF : [u8; 20]  =
+[
+    0x00, // version 0
+    0x00, 0x00, 0x00, // flags
+    0x00, 0x00, 0x00, 0x01, // entry_count
+    0x00, 0x00, 0x00, 0x0c, // entry_size
+    0x75, 0x72, 0x6c, 0x20, // 'url' type
+    0x00, // version 0
+    0x00, 0x00, 0x01, // entry_flags
+];
+
+pub const STCO : [u8; 8] = [
+    0x00, // version
+    0x00, 0x00, 0x00, // flags
+    0x00, 0x00, 0x00, 0x00, // entry_count
+];
+
+pub const STTS : [u8; 8] = [
+    0x00, // version
+    0x00, 0x00, 0x00, // flags
+    0x00, 0x00, 0x00, 0x00, // entry_count
+];
+
+pub const STSC : [u8; 8] = [
+    0x00, // version
+    0x00, 0x00, 0x00, // flags
+    0x00, 0x00, 0x00, 0x00, // entry_count
+];
+
+pub const STSZ : [u8; 12] = [
+    0x00, // version
+    0x00, 0x00, 0x00, // flags
+    0x00, 0x00, 0x00, 0x00, // sample_size
+    0x00, 0x00, 0x00, 0x00, // sample_count
+];
+
+pub const VMHD : [u8; 12] = [
+    0x00, // version
+    0x00, 0x00, 0x01, // flags
+    0x00, 0x00, // graphicsmode
+    0x00, 0x00,
+    0x00, 0x00,
+    0x00, 0x00, // opcolor
+];
+
+pub const STSD : [u8; 8] = [
+    0x00, // version 0
+    0x00, 0x00, 0x00, // flags
+    0x00, 0x00, 0x00, 0x01
+];
+
+pub fn dinf() -> Vec<u8> {
+    create_box(TYPE_DINF, vec![&create_box(TYPE_DREF, vec![&[
+        0x00, // version 0
+        0x00, 0x00, 0x00, // flags
+        0x00, 0x00, 0x00, 0x01, // entry_count
+        0x00, 0x00, 0x00, 0x0c, // entry_size
+        0x75, 0x72, 0x6c, 0x20, // 'url' type
+        0x00, // version 0
+        0x00, 0x00, 0x01, // entry_flags
+    ]])])
 }
 
-impl Default for MP4 {
-    fn default() -> MP4 {
-        MP4 {
-            video_hdlr: [
-                0x00, // version 0
-                0x00, 0x00, 0x00, // flags
-                0x00, 0x00, 0x00, 0x00, // pre_defined
-                0x76, 0x69, 0x64, 0x65, // handler_type: 'vide'
-                0x00, 0x00, 0x00, 0x00, // reserved
-                0x00, 0x00, 0x00, 0x00, // reserved
-                0x00, 0x00, 0x00, 0x00, // reserved
-                0x56, 0x69, 0x64, 0x65,
-                0x6f, 0x48, 0x61, 0x6e,
-                0x64, 0x6c, 0x65, 0x72, 0x00, // name: 'VideoHandler'
-            ],
-            audio_hdlr: [
-                0x00, // version 0
-                0x00, 0x00, 0x00, // flags
-                0x00, 0x00, 0x00, 0x00, // pre_defined
-                0x73, 0x6f, 0x75, 0x6e, // handler_type: 'soun'
-                0x00, 0x00, 0x00, 0x00, // reserved
-                0x00, 0x00, 0x00, 0x00, // reserved
-                0x00, 0x00, 0x00, 0x00, // reserved
-                0x53, 0x6f, 0x75, 0x6e,
-                0x64, 0x48, 0x61, 0x6e,
-                0x64, 0x6c, 0x65, 0x72, 0x00, // name: 'SoundHandler'
-            ],
-            dref: [
-                0x00, // version 0
-                0x00, 0x00, 0x00, // flags
-                0x00, 0x00, 0x00, 0x01, // entry_count
-                0x00, 0x00, 0x00, 0x0c, // entry_size
-                0x75, 0x72, 0x6c, 0x20, // 'url' type
-                0x00, // version 0
-                0x00, 0x00, 0x01, // entry_flags
-            ],
-            stco: [
-                0x00, // version
-                0x00, 0x00, 0x00, // flags
-                0x00, 0x00, 0x00, 0x00, // entry_count
-            ],
-            stts: [
-                0x00, // version
-                0x00, 0x00, 0x00, // flags
-                0x00, 0x00, 0x00, 0x00, // entry_count
-            ],
-            stsc: [
-                0x00, // version
-                0x00, 0x00, 0x00, // flags
-                0x00, 0x00, 0x00, 0x00, // entry_count
-            ],
-            stsz: [
-                0x00, // version
-                0x00, 0x00, 0x00, // flags
-                0x00, 0x00, 0x00, 0x00, // sample_size
-                0x00, 0x00, 0x00, 0x00, // sample_count
-            ],
-            vmhd: [
-                0x00, // version
-                0x00, 0x00, 0x01, // flags
-                0x00, 0x00, // graphicsmode
-                0x00, 0x00,
-                0x00, 0x00,
-                0x00, 0x00, // opcolor
-            ],
-            smhd: [
-                0x00, // version
-                0x00, 0x00, 0x00, // flags
-                0x00, 0x00, // balance
-                0x00, 0x00, // reserved
-            ],
-            stsd: [
-                0x00, // version 0
-                0x00, 0x00, 0x00, // flags
-                0x00, 0x00, 0x00, 0x01
-            ],
-            ftyp: create_box(TYPE_FTYP, 
-                            vec![   &MAJOR_BRAND, 
-                                    &MINOR_VESION, 
-                                    &MAJOR_BRAND, 
-                                    &AVC1_BRAND]),
-
-            dinf: create_box(TYPE_DINF, vec![&create_box(TYPE_DREF, vec![&[
-                0x00, // version 0
-                0x00, 0x00, 0x00, // flags
-                0x00, 0x00, 0x00, 0x01, // entry_count
-                0x00, 0x00, 0x00, 0x0c, // entry_size
-                0x75, 0x72, 0x6c, 0x20, // 'url' type
-                0x00, // version 0
-                0x00, 0x00, 0x01, // entry_flags
-            ]])]),
-        }
-    }
+pub fn ftyp() -> Vec<u8> {
+    create_box(TYPE_FTYP, 
+                vec![   &MAJOR_BRAND, 
+                        &MINOR_VESION, 
+                        &MAJOR_BRAND, 
+                        &AVC1_BRAND])
 }
 
 pub fn create_box(mp4_type: [u8; 4], payload: Vec<&[u8]>) -> Vec<u8> {
@@ -168,7 +161,7 @@ pub fn create_box(mp4_type: [u8; 4], payload: Vec<&[u8]>) -> Vec<u8> {
     result
 }
 
-pub fn hdlr(mp4_type: [u8; 4]) -> Vec<u8> {
+pub fn hdlr(mp4_type: [u8; 37]) -> Vec<u8> {
     
     create_box(TYPE_HDLR, vec![&mp4_type])    
 }
@@ -177,10 +170,22 @@ pub fn mdat(data: [u8; 4]) -> Vec<u8> {
     create_box(TYPE_MDAT, vec![&data])
 }
 
+// pub fn stbl(track) {
+//     // create_box()
+//     // return MP4.box(MP4.types.stbl, MP4.stsd(track), MP4.box(MP4.types.stts, MP4.STTS), MP4.box(MP4.types.stsc, MP4.STSC), MP4.box(MP4.types.stsz, MP4.STSZ), MP4.box(MP4.types.stco, MP4.STCO));
+// }
+
 pub struct Track {
     pub timescale: u32,
     pub duration: u32,
-    pub track_type: &str,
+    pub track_type: String,
+    pub width: u32,
+    pub height: u32,
+    pub volume: u32,
+    pub id: u32,
+    pub audio_sample_rate: u32,
+    pub channel_count: u32,
+    pub config: Vec<u8>,
 }
 
 pub fn mdhd(timescale: u32, duration: u32) -> Vec<u8> {
@@ -202,10 +207,14 @@ pub fn mdhd(timescale: u32, duration: u32) -> Vec<u8> {
     ]])
 }
 
-pub fn mdia(track: Track, mp4: MP4) -> Vec<u8> {
-    let t = if track.track_type == "video" {mp4.video_hdlr} else {mp4.audio_hdlr};
-    vec![]
-    // create_box(TYPE_MDIA, vec![&mdhd(track.timescale, track.duration), &hdlr(t), ])
+pub fn mdia(track: &Track) -> Vec<u8> {
+    let t = if track.track_type == "video" {VIDEO_HDLR} else {AUDIO_HDLR};
+
+    create_box(TYPE_MDIA, vec![
+        &mdhd(track.timescale, track.duration),
+        &hdlr(t),
+        &minf(track)
+    ])
 }
 
 pub fn mfhd(sequence_number: u32) -> Vec<u8> {
@@ -219,37 +228,156 @@ pub fn mfhd(sequence_number: u32) -> Vec<u8> {
     ]])
 }
 
-pub fn minf(track: &str) -> Vec<u8> {
-    // if (track.type === 'audio') {
-    //     return MP4.box(MP4.types.minf, MP4.box(MP4.types.smhd, MP4.SMHD), MP4.DINF, MP4.stbl(track));
-    // } else {
-    //     return MP4.box(MP4.types.minf, MP4.box(MP4.types.vmhd, MP4.VMHD), MP4.DINF, MP4.stbl(track));
-    // }
-    vec![]
+pub fn minf(track: &Track) -> Vec<u8> {
+    if track.track_type == "audio" {
+        create_box(TYPE_MINF, vec![
+            &create_box(TYPE_SMHD, SMHD),
+            &dinf(),
+            stbl(track)
+        ])
+    } else {
+        create_box(TYPE_MINF, vec![
+            &create_box(TYPE_VMHD, VMHD),
+            &dinf(),
+            stbl(track)
+        ])
+    }
 }
 
-pub fn moof(sequence_number: u32, baseMediaDecodeTime, track) {
+pub fn stbl(track: &Track) -> Vec<u8> {
+    create_box(TYPE_STBL, vec![
+        &st
+    ]);
+    // return MP4.box(MP4.types.stbl, MP4.stsd(track), MP4.box(MP4.types.stts, MP4.STTS), MP4.box(MP4.types.stsc, MP4.STSC), MP4.box(MP4.types.stsz, MP4.STSZ), MP4.box(MP4.types.stco, MP4.STCO));
+}
+
+pub fn stsd(track: &Track) -> Vec<u8> {
+    if track.track_type == "audio" {
+        create_box(TYPE_STSD, vec![
+            &STSD,
+            &mp4a(track)
+        ])
+        // return MP4.box(MP4.types.stsd, MP4.STSD, MP4.mp4a(track));
+    } else {
+        // return MP4.box(MP4.types.stsd, MP4.STSD, MP4.avc1(track));
+        create_box(TYPE_STSD, vec![
+            &STSD,
+            &avc1(track)
+        ])
+    }
+}
+
+pub fn mp4a(track: &Track) {
+    create_box(TYPE_MP4A, vec![
+        &[
+            0x00, 0x00, 0x00, // reserved
+            0x00, 0x00, 0x00, // reserved
+            0x00, 0x01, // data_reference_index
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, // reserved
+            0x00, track.channel_count as u8, // channelcount
+            0x00, 0x10, // sampleSize:16bits
+            0x00, 0x00, // pre_defined
+            0x00, 0x00, // reserved2
+            (track.audio_sample_rate >> 8) as u8 & 0xFF,
+            track.audio_sample_rate as u8 & 0xff, //
+            0x00, 0x00
+        ],
+        create_box(TYPE_ESDS, vec![&esds(track)])
+    ])
+}
+
+pub fn esds(track: &Track) -> Vec<u8> {
+
+    let config_length = track.config.len() as u8;
+    let v : Vec<u8> =  Vec::new();
+    v.extend_from_slice(&[
+        0x00, // version 0
+        0x00, 0x00, 0x00, // flags
+
+        0x03, // descriptor_type
+        0x17 + config_length, // length
+        0x00, 0x01, // es_id
+        0x00, // stream_priority
+
+        0x04, // descriptor_type
+        0x0f + config_length, // length
+        0x40, // codec : mpeg4_audio
+        0x15, // stream_type
+        0x00, 0x00, 0x00, // buffer_size
+        0x00, 0x00, 0x00, 0x00, // maxBitrate
+        0x00, 0x00, 0x00, 0x00, // avgBitrate
+
+        0x05, // descriptor_type
+        config_length,
+    ]);
+    
+    v.append(track.config);
+    v.extend_from_slice(&[0x06, 0x01, 0x02]);
+    
+    v
+}
+
+pub fn moof(sequence_number: u32, base_media_decode_time: u32, track: Track) -> Vec<u8> {
     // return MP4.box(MP4.types.moof, MP4.mfhd(sn), MP4.traf(track, baseMediaDecodeTime));
-    vec![]
+    vec![0]
 }
 
 pub fn moov(tracks: Vec<Track>, duration: u32, timescale: u32) -> Vec<u8> {
-    var
-        i = tracks.length,
-        boxes = [];
+    // var
+    //     i = tracks.length,
+    //     boxes = [];
 
-    while (i--) {
-        boxes[i] = MP4.trak(tracks[i]);
-    }
+    // while (i--) {
+    //     boxes[i] = MP4.trak(tracks[i]);
+    // }
 
-    return MP4.box.apply(null, [MP4.types.moov, MP4.mvhd(timescale, duration)].concat(boxes).concat(MP4.mvex(tracks)));
+    // return MP4.box.apply(null, [MP4.types.moov, MP4.mvhd(timescale, duration)].concat(boxes).concat(MP4.mvex(tracks)));
+    vec![0]
 }
 
-pub fn trak(mut track: Track) -> Vec<u8> {
+pub fn trak(track: &mut Track) -> Vec<u8> {
     if track.duration == 0 {
         track.duration = 0xffffffff;
     }
-    // create_box(TYPE_TRAK, MP4.tkhd(track), MP4.mdia(track));
+    create_box(TYPE_TRAK, vec![&tkhd(&track), &mdia(&track)])
+}
 
-    vec![]
+pub fn tkhd(track: &Track) -> Vec<u8> {
+    create_box(TYPE_TKHD, vec![&[
+        0x00, // version 0
+        0x00, 0x00, 0x07, // flags
+        0x00, 0x00, 0x00, 0x00, // creation_time
+        0x00, 0x00, 0x00, 0x00, // modification_time
+        (track.id >> 24) as u8 & 0xFF,
+        (track.id >> 16) as u8 & 0xFF,
+        (track.id >> 8) as u8 & 0xFF,
+        track.id as u8 & 0xFF, // track_ID
+        0x00, 0x00, 0x00, 0x00, // reserved
+        (track.duration >> 24) as u8 & 0xFF,
+        (track.duration >> 16) as u8 & 0xFF,
+        (track.duration >> 8) as u8 & 0xFF,
+        track.duration as u8 & 0xFF, // duration
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, // reserved
+        0x00, 0x00, // layer
+        0x00, 0x00, // alternate_group
+        (track.volume >> 0) as u8 & 0xff, (((track.volume % 1) * 10) >> 0) as u8 & 0xff, // track volume // FIXME
+        0x00, 0x00, // reserved
+        0x00, 0x01, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x01, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x40, 0x00, 0x00, 0x00, // transformation: unity matrix
+        (track.width >> 8) as u8 & 0xFF,
+        track.width as u8 & 0xFF,
+        0x00, 0x00, // width
+        (track.height >> 8) as u8 & 0xFF,
+        track.height as u8 & 0xFF,
+        0x00, 0x00, // height
+    ]])
 }
