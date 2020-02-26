@@ -1,6 +1,6 @@
 mod utils;
 mod mp4;
-
+mod h264;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use js_sys::Uint8Array;
@@ -28,8 +28,7 @@ extern "C" {
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), JsValue> {
     
-    let window = web_sys::window().expect("no global `win
-    dow` exists");
+    let window = web_sys::window().expect("no global `window` exists");
     let document = window.document().expect("should have a document on window");
     
     let sourceopen_callback = Closure::wrap(Box::new(|e: Event| {
