@@ -455,7 +455,7 @@ pub fn trun(track: &Track, offset: u32) -> Vec<u8> {
             (sample.flags.has_redundancy << 4) as u8 |
             (sample.flags.padding_value << 1) as u8 |
             sample.flags.is_non_sync as u8,
-            sample.flags.degrad_prio & 0xF0 << 8,
+            (((sample.flags.degrad_prio & 0xF0) as u32) << 8) as u8,
             sample.flags.degrad_prio & 0x0F, // sample_flags
             (sample.cts >> 24) as u8 & 0xFF,
             (sample.cts >> 16) as u8 & 0xFF,
