@@ -31,41 +31,34 @@ impl Nalu {
     }
 }
 
-pub fn parse_to_nalu(data: Vec<u8>) -> Vec<Nalu> {
+pub fn parse_to_nalu(v: Vec<u8>) -> Vec<Nalu> {
 
     let mut nalus : Vec<Nalu> = Vec::new();
     
-    let mut append_nalu = |start_index: usize, v: &Vec<u8>, idx: usize, size: usize| {
-        let end_index = if idx < v.len() { idx } else { v.len() - 1 };
-        println!("append_nalu: {} {} {}", start_index as u32, idx as u32, end_index as u32);
-        let unit = &v[start_index + size..end_index];
-        let mut v : Vec<u8> = Vec::new();
-        v.extend_from_slice(unit);
-        let nalu = Nalu::new(v);
-        println!("nal added: {:?}", nalu.payload);
-        nalus.push(nalu);
-    };
-   
-    let mut start_index : i32 = -1;
-   
-    for n in 0..data.len() {
-        // take 4 bytes from this index and if 0x0000001 then we have a NAL
-        let window = if (n + 4) > data.len() {data.len() - 4} else {n + 4};
-        println!("window: {}", window);
-        let s = &data[n..window];
-        println!("{:?}", s);
-        match s {
-            [_,0,0,1] => {
-                println!("nal code: {}", start_index);
-                if start_index != -1 {
-                    append_nalu(start_index as usize, &data, n, 4);
-                } 
-                start_index = n as i32;
-            },
-            _ => (),
+    let mut position : Option<usize> = None;
+    
+    for i in 0..v.len() {
+        let end = i + 4;
+        if end > v.len() - 1 && position.is_some() {
+            let s = position.unwrap() + 4;
+            let e = v.len();
+            nalus.push(Nalu::new((&v[s .. e]).to_vec()));
+            break;
+        }
+        
+        let d = &v[i..end];
+        match d {
+            [0,0,0,1] => {
+                if position.is_some() {
+                    let s = position.unwrap() + 4;
+                    let e = i;
+                    nalus.push(Nalu::new((&v[s .. e]).to_vec()));
+                }
+                position = Some(i);
+            }, 
+            _ => ()
         }
     }
-
     nalus
 }
 
@@ -75,8 +68,17 @@ mod tests {
 
     #[test]
     fn test_parse_to_nalu() {
+        
         let v : Vec<u8> = vec![0,0,0,1,1,2,3,4,0,0,0,1,5,6,0,0,0,1,7];
-        parse_to_nalu(v);
-        assert_eq!(3, 3);
+        let nalus = parse_to_nalu(v);
+        
+        assert_eq!(nalus.len(), 3);
+        assert_eq!(nalus[0].payload.len(), 4);
+        assert_eq!(nalus[0].payload, [1, 2, 3, 4]);
+        assert_eq!(nalus[1].payload.len(), 2);
+        assert_eq!(nalus[1].payload, [5, 6]);
+        assert_eq!(nalus[2].payload.len(), 1);
+        assert_eq!(nalus[2].payload, [7]);
+        
     }
 }
