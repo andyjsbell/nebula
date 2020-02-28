@@ -6,6 +6,178 @@ pub const SPS : u8= 7;
 pub const PPS : u8= 8;
 pub const AUD : u8= 9;
 
+struct SequencePictureSet {
+    pub frame_crop_left_offset: u32,
+    pub frame_crop_right_offset: u32,
+    pub frame_crop_top_offset: u32,
+    pub frame_crop_bottom_offset: u32,
+    pub sar_scale: u8,
+    pub profile_idc: u32,
+    pub profile_compat: u32,
+    pub level_idc: u32,
+    pub num_ref_frames_in_pic_order_cnt_cycle: u32,
+    pub pic_width_in_mbs_minus1: u32,
+    pub pic_height_in_map_units_minus1: u32,
+    pub frame_mbs_only_flag: u32,
+    pub scaling_list_count: u32,
+}
+
+impl SequencePictureSet {
+    pub fn new() -> SequencePictureSet{
+        SequencePictureSet {
+            frame_crop_left_offset: 0,
+            frame_crop_right_offset: 0,
+            frame_crop_top_offset: 0,
+            frame_crop_bottom_offset: 0,
+            sar_scale: 1,
+            profile_compat: 0,
+            profile_idc: 0,
+            level_idc: 0,
+            num_ref_frames_in_pic_order_cnt_cycle: 0,
+            pic_height_in_map_units_minus1: 0,
+            pic_width_in_mbs_minus1: 0,
+            frame_mbs_only_flag: 0,
+            scaling_list_count: 0,
+            
+        }
+    }
+}
+
+pub fn read_sps(data: Vec<u8>) {
+    let decoder = Expo::new(data);
+    decoder.read_ubyte(1);
+    let mut sps = SequencePictureSet::new();
+    sps.profile_idc = decoder.read_ubyte(1); // profile_idc
+    sps.profile_compat = decoder.read_bits(5, true); // constraint_set[0-4]_flag, u(5)
+    decoder.skip_bits(3); // reserved_zero_3bits u(3),
+    sps.level_idc = decoder.read_ubyte(1); // level_idc u(8)
+    decoder.skip_ueg(); // seq_parameter_set_id
+    // some profiles have more optional data we don't need
+    if sps.profile_idc == 100 ||
+        sps.profile_idc == 110 ||
+        sps.profile_idc == 122 ||
+        sps.profile_idc == 244 ||
+        sps.profile_idc == 44 ||
+        sps.profile_idc == 83 ||
+        sps.profile_idc == 86 ||
+        sps.profile_idc == 118 ||
+        sps.profile_idc == 128 {
+        
+        let mut chroma_format_idc = decoder.read_ueg();
+        if chroma_format_idc == 3 {
+            decoder.skip_bits(1); // separate_colour_plane_flag
+        }
+        decoder.skip_ueg(); // bit_depth_luma_minus8
+        decoder.skip_ueg(); // bit_depth_chroma_minus8
+        decoder.skip_bits(1); // qpprime_y_zero_transform_bypass_flag
+        if decoder.read_bool() { // seq_scaling_matrix_present_flag
+            sps.scaling_list_count = if chroma_format_idc != 3 { 8 } else { 12 };
+            for i in 0..sps.scaling_list_count {
+                if decoder.read_bool() { // seq_scaling_list_present_flag[ i ]
+                    if i < 6 {
+                        // H264Parser.skipScalingList(decoder, 16);
+                    } else {
+                        // H264Parser.skipScalingList(decoder, 64);
+                    }
+                }
+            }
+        }
+    }
+
+    decoder.skip_ueg(); // log2_max_frame_num_minus4
+    let mut pic_order_cnt_type = decoder.read_ueg();
+    if pic_order_cnt_type == 0 {
+        decoder.read_ueg(); // log2_max_pic_order_cnt_lsb_minus4
+    } else if pic_order_cnt_type == 1 {
+        decoder.skip_bits(1); // delta_pic_order_always_zero_flag
+        decoder.skip_eg(); // offset_for_non_ref_pic
+        decoder.skip_eg(); // offset_for_top_to_bottom_field
+        sps.num_ref_frames_in_pic_order_cnt_cycle = decoder.read_ueg();
+        
+        for i in 0..sps.num_ref_frames_in_pic_order_cnt_cycle {
+            decoder.skip_eg();
+        }
+    }
+
+    decoder.skip_ueg(); // max_num_ref_frames
+    decoder.skip_bits(1); // gaps_in_frame_num_value_allowed_flag
+    sps.pic_width_in_mbs_minus1 = decoder.read_ueg();
+    sps.pic_height_in_map_units_minus1 = decoder.read_ueg();
+    sps.frame_mbs_only_flag = decoder.read_bits(1, true);
+    
+    if sps.frame_mbs_only_flag == 0 {
+        decoder.skip_bits(1); // mb_adaptive_frame_field_flag
+    }
+    
+    decoder.skip_bits(1); // direct_8x8_inference_flag
+    
+    if decoder.read_bool() { // frame_cropping_flag
+        sps.frame_crop_left_offset = decoder.read_ueg();
+        sps.frame_crop_right_offset = decoder.read_ueg();
+        sps.frame_crop_top_offset = decoder.read_ueg();
+        sps.frame_crop_bottom_offset = decoder.read_ueg();
+    }
+
+    if decoder.read_bool() {
+        // vui_parameters_present_flag
+        if decoder.read_bool() {
+            // aspect_ratio_info_present_flag
+            let aspect_ratio_idc = decoder.read_ubyte(1);
+            let sar_ratio : Option<[u8; 2]>= match aspect_ratio_idc {
+                1 => Some([1, 1]),
+                2 => Some([12, 11]),
+                3 => Some([10, 11]),
+                4 => Some([16, 11]),
+                5 => Some([40, 33]),
+                6 => Some([24, 11]),
+                7 => Some([20, 11]),
+                8 => Some([32, 11]),
+                9 => Some([80, 33]),
+                10 => Some([18, 11]),
+                11 => Some([15, 11]),
+                12 => Some([64, 33]),
+                13 => Some([160, 99]),
+                14 => Some([4, 3]),
+                15 => Some([3, 2]),
+                16 => Some([2, 1]),
+                255 => {
+                    Some([decoder.read_ubyte(1) << 8 | decoder.read_ubyte(1), decoder.read_ubyte(1) << 8 | decoder.read_ubyte(1)]);
+                },
+                _ => None
+            };
+
+            if sar_ratio.is_some() {
+                let s = sar_ratio.unwrap();
+                sps.sar_scale = s[0] / s[1];
+            }
+        }
+
+        if decoder.read_bool() { decoder.skip_bits(1); }
+
+        if decoder.read_bool() {
+            decoder.skip_bits(4);
+            if decoder.read_bool() {
+                decoder.skip_bits(24);
+            }
+        }
+
+        if decoder.read_bool() {
+            decoder.skip_ueg();
+            decoder.skip_ueg();
+        }
+
+        if decoder.read_bool() {
+            let unitsInTick = decoder.read_uint();
+            let timeScale = decoder.readUInt();
+            let fixedFrameRate = decoder.readBoolean();
+            let frameDuration = timeScale / (2 * unitsInTick);
+        }
+    }
+    return {
+        width: Math.ceil((((picWidthInMbsMinus1 + 1) * 16) - frameCropLeftOffset * 2 - frameCropRightOffset * 2) * sarScale),
+        height: ((2 - frameMbsOnlyFlag) * (picHeightInMapUnitsMinus1 + 1) * 16) - ((frameMbsOnlyFlag ? 2 : 4) * (frameCropTopOffset + frameCropBottomOffset)),
+    };
+}
 struct Expo {
     pub data : Vec<u8>,
     pub index : u32,
