@@ -1,4 +1,3 @@
-
 pub const NDR : u8 = 1;
 pub const IDR : u8= 5;
 pub const SEI : u8= 6;
@@ -6,7 +5,7 @@ pub const SPS : u8= 7;
 pub const PPS : u8= 8;
 pub const AUD : u8= 9;
 
-struct SequencePictureSet {
+pub struct SequencePictureSet {
     pub frame_crop_left_offset: u32,
     pub frame_crop_right_offset: u32,
     pub frame_crop_top_offset: u32,
@@ -20,6 +19,10 @@ struct SequencePictureSet {
     pub pic_height_in_map_units_minus1: u32,
     pub frame_mbs_only_flag: u32,
     pub scaling_list_count: u32,
+    pub units_in_tick: u32,
+    pub time_scale: u32,
+    pub fixed_frame_rate: bool,
+    pub frame_duration: u32,
 }
 
 impl SequencePictureSet {
@@ -38,13 +41,27 @@ impl SequencePictureSet {
             pic_width_in_mbs_minus1: 0,
             frame_mbs_only_flag: 0,
             scaling_list_count: 0,
-            
+            units_in_tick: 0,
+            time_scale: 0,
+            fixed_frame_rate: false,
+            frame_duration: 0,
         }
+    }
+
+    pub fn config(&self) -> (u32, u32) {
+        let width = 0;
+        let height = 0;
+        (width, height)
+            // return {
+    //     width: Math.ceil((((picWidthInMbsMinus1 + 1) * 16) - frameCropLeftOffset * 2 - frameCropRightOffset * 2) * sarScale),
+    //     height: ((2 - frameMbsOnlyFlag) * (picHeightInMapUnitsMinus1 + 1) * 16) - ((frameMbsOnlyFlag ? 2 : 4) * (frameCropTopOffset + frameCropBottomOffset)),
+    // };
     }
 }
 
-pub fn read_sps(data: Vec<u8>) {
-    let decoder = Expo::new(data);
+pub fn read_sps(data: Vec<u8>) -> SequencePictureSet {
+    
+    let mut decoder = Expo::new(data);
     decoder.read_ubyte(1);
     let mut sps = SequencePictureSet::new();
     sps.profile_idc = decoder.read_ubyte(1); // profile_idc
@@ -141,7 +158,8 @@ pub fn read_sps(data: Vec<u8>) {
                 15 => Some([3, 2]),
                 16 => Some([2, 1]),
                 255 => {
-                    Some([decoder.read_ubyte(1) << 8 | decoder.read_ubyte(1), decoder.read_ubyte(1) << 8 | decoder.read_ubyte(1)]);
+                    Some([  (decoder.read_ubyte(1) << 8 | decoder.read_ubyte(1)) as u8, 
+                            (decoder.read_ubyte(1) << 8 | decoder.read_ubyte(1)) as u8])
                 },
                 _ => None
             };
@@ -167,17 +185,16 @@ pub fn read_sps(data: Vec<u8>) {
         }
 
         if decoder.read_bool() {
-            let unitsInTick = decoder.read_uint();
-            let timeScale = decoder.readUInt();
-            let fixedFrameRate = decoder.readBoolean();
-            let frameDuration = timeScale / (2 * unitsInTick);
+            sps.units_in_tick = decoder.read_uint();
+            sps.time_scale = decoder.read_uint();
+            sps.fixed_frame_rate = decoder.read_bool();
+            sps.frame_duration = sps.time_scale / (2 * sps.units_in_tick);
         }
     }
-    return {
-        width: Math.ceil((((picWidthInMbsMinus1 + 1) * 16) - frameCropLeftOffset * 2 - frameCropRightOffset * 2) * sarScale),
-        height: ((2 - frameMbsOnlyFlag) * (picHeightInMapUnitsMinus1 + 1) * 16) - ((frameMbsOnlyFlag ? 2 : 4) * (frameCropTopOffset + frameCropBottomOffset)),
-    };
+
+    sps
 }
+
 struct Expo {
     pub data : Vec<u8>,
     pub index : u32,
