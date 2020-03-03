@@ -71,9 +71,44 @@ pub fn start_websocket(media_source: &MediaSource) -> Result<(), JsValue> {
             console_log!("on load of file reader {:?}", file_reader);
             let a : Uint8Array = Uint8Array::new(&file_reader.result().expect("unable to read result from filereader"));
             console_log!("array length {}", a.length());
+            // TODO - remove this copy by working with the array in js directly??
             let mut data = vec![0; a.length() as usize];
             a.copy_to(&mut data[..]);
 
+            let nalus = h264::parse_to_nalu(data);
+            let mut samples : Vec<mp4::Sample> = Vec::new();
+            let size = nalus.len();
+            let mut last_index = 0;
+            for idx in 0..size {
+                if nalus[idx].ntype == h264::IDR || nalus[idx].ntype == h264::NDR {
+                    let s = &nalus[last_index..idx];
+                    let mut total_size = 0; 
+                    // TODO - maybe better to just iterate nalu instead of slicing
+                    for f in s {
+                        total_size = total_size + f.get_size();
+                    }
+
+                    last_index = idx;
+                    let mut v = Vec::new();
+                    v.extend_from_slice(s);
+                    let sample: mp4::Sample = mp4::Sample {
+                        cts: 0,
+                        duration: 30 * v.len() as u32,
+                        flags: mp4::Flags {
+                            is_leading: 0,
+                            is_depended_on: 0,
+                            has_redundancy: 0,
+                            degrad_prio: 0,
+                            is_non_sync: 0,
+                            depends_on: 0,
+                            padding_value: 0,
+                        },
+                        nalus: v,
+                        size: total_size,
+                    };
+                    
+                }
+            }
             // Break out into NAL UNITS
             // if *INITIALIZED.lock().unwrap() {
             //     let t = mp4::Track::new();

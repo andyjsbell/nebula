@@ -184,12 +184,12 @@ pub struct Flags {
     pub padding_value: u8,
 }
 
-#[derive(Clone)]
 pub struct Sample {
     pub size: u32,
     pub duration: u32,
     pub cts: u32,
     pub flags: Flags,
+    pub nalus: Vec<h264::Nalu>,
 }
 
 #[derive(Clone)]
