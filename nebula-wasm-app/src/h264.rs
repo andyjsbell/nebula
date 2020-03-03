@@ -5,6 +5,7 @@ pub const SPS : u8= 7;
 pub const PPS : u8= 8;
 pub const AUD : u8= 9;
 
+#[derive(Debug, Clone)]
 pub struct SequencePictureSet {
     pub frame_crop_left_offset: u32,
     pub frame_crop_right_offset: u32,
@@ -59,9 +60,9 @@ impl SequencePictureSet {
     }
 }
 
-pub fn read_sps(data: Vec<u8>) -> SequencePictureSet {
+pub fn read_sps(data: &Vec<u8>) -> SequencePictureSet {
     
-    let mut decoder = Expo::new(data);
+    let mut decoder = Expo::new(&data);
     decoder.read_ubyte(1);
     let mut sps = SequencePictureSet::new();
     sps.profile_idc = decoder.read_ubyte(1); // profile_idc
@@ -195,14 +196,14 @@ pub fn read_sps(data: Vec<u8>) -> SequencePictureSet {
     sps
 }
 
-struct Expo {
-    pub data : Vec<u8>,
+struct Expo<'a> {
+    pub data : &'a Vec<u8>,
     pub index : u32,
     pub bit_length : u32,
 }
 
-impl Expo {
-    pub fn new(data: Vec<u8>) -> Expo {
+impl<'a> Expo<'a> {
+    pub fn new(data: &'a Vec<u8>) -> Expo {
         Expo {
             index: 0,
             bit_length: data.len() as u32 * 8,
