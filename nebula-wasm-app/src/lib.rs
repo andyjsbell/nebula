@@ -30,11 +30,12 @@ pub fn run() -> Result<(), JsValue> {
     
     let window = web_sys::window().expect("no global `window` exists");
     let document = window.document().expect("should have a document on window");
-    
+    let mut et;
+
     let sourceopen_callback = Closure::wrap(Box::new(|e: Event| {
 
         console_log!("source open");
-        let et = e.target().unwrap();
+        et = e.target().unwrap();
         let media_source = JsCast::unchecked_ref::<MediaSource>(&et);
         
         start_websocket(media_source).unwrap();
@@ -88,7 +89,7 @@ pub fn start_websocket(media_source: &MediaSource) -> Result<(), JsValue> {
                     
                     let sample: mp4::Sample = mp4::Sample {
                         cts: 0,
-                        duration: 30 * v.len() as u32,
+                        duration: 30 * v.len() as u32,  // We are assuming 30ish frames per second, TODO - need to add to protocol duration
                         flags: mp4::Flags {
                             is_leading: 0,
                             is_depended_on: 0,
@@ -105,25 +106,24 @@ pub fn start_websocket(media_source: &MediaSource) -> Result<(), JsValue> {
                     samples.push(sample);
                 }
             }
-            
-            // Break out into NAL UNITS
-            // if *INITIALIZED.lock().unwrap() {
-            //     let t = mp4::Track::new();
-            //     mp4::init_segment(vec![t], 0xffffffff, 1000);
-            //     *INITIALIZED.lock().unwrap() = true;
-            // } else {
-            //     let t = mp4::Track::new();
-            //     let sequence_number = 0; // this needs to increase on each atom
-            //     let decode_time = 0;
-            //     let mut moof = mp4::moof(sequence_number, decode_time, &t);
-            //     let mut mdat = mp4::mdat([0,0,0,0]);
-            //     moof.append(&mut mdat);
-            // }
-            // mp4::init_segment()
-            // let mime = "video/mp4; codecs=\"avc1.42E01E\"";
-            // let source_buffer = media_source.add_source_buffer(mime).unwrap();
-            // source_buffer.append_buffer_with_array_buffer(&a.buffer()).unwrap();
 
+            let video_track = mp4::Track::new();
+            
+            if *INITIALIZED.lock().unwrap() {
+                let mime = format!("video/mp4; codecs=\"{}\"", video_track.codec);
+                let source_buffer = media_source.add_source_buffer(&mime).unwrap();
+                // source_buffer.append_buffer_with_array_buffer(&a.buffer()).unwrap();
+                mp4::init_segment(vec![video_track], 0xffffffff, 1000);
+                *INITIALIZED.lock().unwrap() = true;
+            } else {
+                let sequence_number = 0; // this needs to increase on each atom
+                let decode_time = 0;
+                let mut moof = mp4::moof(sequence_number, decode_time, &video_track);
+                let mut mdat = mp4::mdat([0,0,0,0]);
+                moof.append(&mut mdat);
+            }
+
+            // Grab next frame
             let mut cmd : [u8;1] = ['f' as u8];
 
             match cloned_ws.send_with_u8_array(&mut cmd) {
