@@ -242,6 +242,10 @@ impl Track {
         let s = str::from_utf8(&self.sps[1..5]).unwrap();
         self.codec = codec.add(s);
     }
+
+    pub fn parse_pps(&mut self, data: Vec<u8>) {
+        self.pps = data;
+    }
 }
 
 pub fn mdhd(timescale: u32, duration: u32) -> Vec<u8> {
