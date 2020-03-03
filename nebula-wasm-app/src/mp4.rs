@@ -184,6 +184,7 @@ pub struct Flags {
     pub padding_value: u8,
 }
 
+#[derive(Clone)]
 pub struct Sample {
     pub size: u32,
     pub duration: u32,

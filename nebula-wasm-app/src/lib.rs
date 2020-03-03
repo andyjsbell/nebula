@@ -77,20 +77,15 @@ pub fn start_websocket(media_source: &MediaSource) -> Result<(), JsValue> {
 
             let nalus = h264::parse_to_nalu(data);
             let mut samples : Vec<mp4::Sample> = Vec::new();
-            let size = nalus.len();
-            let mut last_index = 0;
-            for idx in 0..size {
-                if nalus[idx].ntype == h264::IDR || nalus[idx].ntype == h264::NDR {
-                    let s = &nalus[last_index..idx];
-                    let mut total_size = 0; 
-                    // TODO - maybe better to just iterate nalu instead of slicing
-                    for f in s {
-                        total_size = total_size + f.get_size();
-                    }
+            let mut size = 0;
+            let v = &mut Vec::<h264::Nalu>::new();
 
-                    last_index = idx;
-                    let mut v = Vec::new();
-                    v.extend_from_slice(s);
+            for nalu in nalus {
+                size = size + nalu.get_size();
+                v.push(nalu);
+                
+                if v.last().unwrap().ntype == h264::IDR || v.last().unwrap().ntype == h264::NDR {
+                    
                     let sample: mp4::Sample = mp4::Sample {
                         cts: 0,
                         duration: 30 * v.len() as u32,
@@ -103,12 +98,14 @@ pub fn start_websocket(media_source: &MediaSource) -> Result<(), JsValue> {
                             depends_on: 0,
                             padding_value: 0,
                         },
-                        nalus: v,
-                        size: total_size,
+                        nalus: v.to_vec(),
+                        size: size,
                     };
-                    
+
+                    samples.push(sample);
                 }
             }
+            
             // Break out into NAL UNITS
             // if *INITIALIZED.lock().unwrap() {
             //     let t = mp4::Track::new();
