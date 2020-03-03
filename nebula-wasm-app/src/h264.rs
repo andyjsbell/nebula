@@ -314,6 +314,7 @@ impl<'a> Expo<'a> {
 
 }
 
+#[derive(Clone)]
 pub struct Nalu {
     pub payload : Vec<u8>,
     pub nri : u8,
