@@ -220,6 +220,7 @@ impl Track {
             samples: vec![],
             pps: vec![],
             sps: vec![],
+            config: vec![],
             width: 0,
             height: 0,
             audio_sample_rate: 0,
