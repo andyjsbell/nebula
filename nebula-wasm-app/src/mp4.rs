@@ -1,3 +1,7 @@
+use crate::h264;
+use std::str;
+use std::ops::Add;
+
 pub const TYPE_AVC1: [u8; 4] = [ 97, 118, 99, 49 ];
 pub const TYPE_AVCC: [u8; 4] = [ 97, 118, 99, 67 ];
 pub const TYPE_BTRT: [u8; 4] = [ 98, 116, 114, 116 ];
@@ -224,6 +228,20 @@ impl Track {
             channel_count: 0,
             volume: 0,
         }
+    }
+    
+    pub fn parse_sps(&mut self, data: Vec<u8>) {
+
+        self.sps = data;
+        let sps = h264::read_sps(&(self.sps));
+
+        self.width = (((sps.pic_width_in_mbs_minus1 + 1) * 16) - sps.frame_crop_left_offset * 2 - sps.frame_crop_right_offset * 2) * sps.sar_scale as u32;
+        self.height = ((2 - sps.frame_mbs_only_flag) * (sps.pic_height_in_map_units_minus1 + 1) * 16) - 
+                        ((if sps.frame_mbs_only_flag > 0 { 2 } else { 4 }) * (sps.frame_crop_top_offset + sps.frame_crop_bottom_offset));
+        
+        let codec = String::from("avc.");
+        let s = str::from_utf8(&self.sps[1..5]).unwrap();
+        self.codec = codec.add(s);
     }
 }
 
