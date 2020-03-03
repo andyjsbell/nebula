@@ -71,20 +71,22 @@ pub fn start_websocket(media_source: &MediaSource) -> Result<(), JsValue> {
             console_log!("on load of file reader {:?}", file_reader);
             let a : Uint8Array = Uint8Array::new(&file_reader.result().expect("unable to read result from filereader"));
             console_log!("array length {}", a.length());
-            
+            let mut data = vec![0; a.length() as usize];
+            a.copy_to(&mut data[..]);
+
             // Break out into NAL UNITS
-            if *INITIALIZED.lock().unwrap() {
-                let t = mp4::Track::new();
-                mp4::init_segment(vec![t], 0xffffffff, 1000);
-                *INITIALIZED.lock().unwrap() = true;
-            } else {
-                let t = mp4::Track::new();
-                let sequence_number = 0; // this needs to increase on each atom
-                let decode_time = 0;
-                let mut moof = mp4::moof(sequence_number, decode_time, &t);
-                let mut mdat = mp4::mdat([0,0,0,0]);
-                moof.append(&mut mdat);
-            }
+            // if *INITIALIZED.lock().unwrap() {
+            //     let t = mp4::Track::new();
+            //     mp4::init_segment(vec![t], 0xffffffff, 1000);
+            //     *INITIALIZED.lock().unwrap() = true;
+            // } else {
+            //     let t = mp4::Track::new();
+            //     let sequence_number = 0; // this needs to increase on each atom
+            //     let decode_time = 0;
+            //     let mut moof = mp4::moof(sequence_number, decode_time, &t);
+            //     let mut mdat = mp4::mdat([0,0,0,0]);
+            //     moof.append(&mut mdat);
+            // }
             // mp4::init_segment()
             // let mime = "video/mp4; codecs=\"avc1.42E01E\"";
             // let source_buffer = media_source.add_source_buffer(mime).unwrap();
