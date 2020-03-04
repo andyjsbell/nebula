@@ -11,6 +11,9 @@
 		},
 		{
 			"path": "nebula-wasm-app"
+		},
+		{
+			"path": "nebula-wasm-webpack"
 		}
 	],
 	"settings": {}
