@@ -64,7 +64,6 @@ impl VideoPlayer {
         let ws = WebSocket::new("ws://localhost:9001/socket").unwrap();
         {
             let vp = self.clone();  // Create a referenced count
-        
             let cloned_ws = ws.clone();
             /////////////////////////////////////////////////
             // Create file reader to handle the packets coming in from the websocket
