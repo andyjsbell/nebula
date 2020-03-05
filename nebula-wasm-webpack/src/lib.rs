@@ -60,10 +60,11 @@ impl VideoPlayer {
     // At the moment we are taking ownership of self to be able to use self within the callback, TODO use references in callback 'lifetimes'
     pub fn start(&self, value: JsValue) {
    
-        let vp = self.clone();  // Create a referenced count
         // Connect to server
         let ws = WebSocket::new("ws://localhost:9001/socket").unwrap();
         {
+            let vp = self.clone();  // Create a referenced count
+        
             let cloned_ws = ws.clone();
             /////////////////////////////////////////////////
             // Create file reader to handle the packets coming in from the websocket
