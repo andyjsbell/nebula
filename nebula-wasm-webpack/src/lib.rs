@@ -116,7 +116,7 @@ impl VideoPlayer {
                     let source_buffer = media_source.add_source_buffer(&mime).unwrap();
                     source_buffer.append_buffer_with_array_buffer(&a.buffer()).unwrap();
                     mp4::init_segment(vec![video_track], 0xffffffff, 1000);
-                    // self.initialised = true;
+                    self.initialised = true;
                 } else {
                     let sequence_number = 0; // this needs to increase on each atom
                     let decode_time = 0;
