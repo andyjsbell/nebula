@@ -5,6 +5,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use js_sys::Uint8Array;
 use web_sys::{ErrorEvent, Event, FileReader, EventTarget, SourceBuffer, MessageEvent, WebSocket, Blob, MediaSource, Url};
+use std::sync::Arc;
 
 // When the `wee_alloc` feature is enabled, this uses `wee_alloc` as the global
 // allocator.
@@ -57,8 +58,9 @@ impl VideoPlayer {
     
     // Pass our media source which is already attaced to the video element for playback
     // At the moment we are taking ownership of self to be able to use self within the callback, TODO use references in callback 'lifetimes'
-    pub fn start(self, value: JsValue) {
+    pub fn start(&self, value: JsValue) {
    
+        let vp = self.clone();  // Create a referenced count
         // Connect to server
         let ws = WebSocket::new("ws://localhost:9001/socket").unwrap();
         {
@@ -108,13 +110,13 @@ impl VideoPlayer {
 
                 let video_track = mp4::Track::new();
                 
-                if self.initialised {
+                if vp.initialised {
                     let mime = format!("video/mp4; codecs=\"{}\"", video_track.codec);
                     let media_source = JsCast::unchecked_ref::<MediaSource>(&value);
                     let source_buffer = media_source.add_source_buffer(&mime).unwrap();
                     source_buffer.append_buffer_with_array_buffer(&a.buffer()).unwrap();
                     mp4::init_segment(vec![video_track], 0xffffffff, 1000);
-                    self.initialised = true;
+                    // self.initialised = true;
                 } else {
                     let sequence_number = 0; // this needs to increase on each atom
                     let decode_time = 0;
