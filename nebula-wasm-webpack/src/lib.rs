@@ -63,7 +63,7 @@ impl VideoPlayer {
         // Connect to server
         let ws = WebSocket::new("ws://localhost:9001/socket").unwrap();
         {
-            let vp = self.clone();  // Create a referenced count
+            let mut vp = self.clone();  // Create a referenced count
             let cloned_ws = ws.clone();
             /////////////////////////////////////////////////
             // Create file reader to handle the packets coming in from the websocket
@@ -116,7 +116,7 @@ impl VideoPlayer {
                     let source_buffer = media_source.add_source_buffer(&mime).unwrap();
                     source_buffer.append_buffer_with_array_buffer(&a.buffer()).unwrap();
                     mp4::init_segment(vec![video_track], 0xffffffff, 1000);
-                    self.initialised = true;
+                    vp.initialised = true;
                 } else {
                     let sequence_number = 0; // this needs to increase on each atom
                     let decode_time = 0;
