@@ -29,6 +29,8 @@ fn on_load_data(event: Event, media_source: &MediaSource, ws: &WebSocket) {
     match event_target.dyn_into::<FileReader>() {
         Ok(file_reader) => {
 
+            console_log!("Data at FileReader");
+            
             let a : Uint8Array = Uint8Array::new(&file_reader.result().expect("unable to read result from filereader"));
     
             let mut data = vec![0; a.length() as usize];
@@ -99,6 +101,8 @@ fn on_opensource(event: Event) {
     let event_target : EventTarget = event.target().unwrap();
     match event_target.dyn_into::<MediaSource>() {
         Ok(media_source) => {
+            console_log!("Creating websocket");
+            
             let ws = WebSocket::new("ws://localhost:9001/socket").unwrap();
             
             let onerror_callback = Closure::wrap(Box::new(move |e: ErrorEvent| {
@@ -109,7 +113,7 @@ fn on_opensource(event: Event) {
 
             let cloned_ws = ws.clone();
             let onopen_callback = Closure::wrap(Box::new(move |_| {
-                console_log!("socket opened");
+                console_log!("Socket opened");
                 let mut cmd : [u8;1] = ['f' as u8];
                 match cloned_ws.send_with_u8_array(&mut cmd) {
                     Ok(_) => console_log!("message successfully sent"),
@@ -129,6 +133,8 @@ fn on_opensource(event: Event) {
         
             let onmessage_callback = Closure::wrap(Box::new(move |e: MessageEvent| {
 
+                console_log!("Socket message arrived");
+            
                 let response = e.data();
                 let blob = Blob::from(response);
                 // Load blob into file reader and when ready write into source buffer
@@ -155,10 +161,10 @@ fn app() {
     
     match document.query_selector("video").unwrap() {
         Some(video) => {
+            console_log!("MediaSource opened");
             let media_source = MediaSource::new().unwrap();
             let video_src = Url::create_object_url_with_source(&media_source).unwrap();
             video.set_attribute("src", &video_src).unwrap();
-            // console_log!("{:?}", );
             let sourceopen_callback = Closure::wrap(Box::new(|event: Event| on_opensource(event)) as Box<dyn FnMut(Event)>);    
             media_source.set_onsourceopen(Some(sourceopen_callback.as_ref().unchecked_ref()));
             sourceopen_callback.forget();
