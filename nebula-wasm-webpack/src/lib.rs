@@ -40,7 +40,7 @@ fn on_load_data(event: Event, media_source: &MediaSource, ws: &WebSocket) {
             let mut samples : Vec<mp4::Sample> = Vec::new();
             let mut size = 0;
             let v = &mut Vec::<h264::Nalu>::new();
-
+            console_log!("nalus size: {}", nalus.len());
             for nalu in nalus {
                 size = size + nalu.get_size();
                 v.push(nalu);
@@ -67,11 +67,13 @@ fn on_load_data(event: Event, media_source: &MediaSource, ws: &WebSocket) {
                 }
             }
 
+            
             let video_track = mp4::Track::new();
             
             let initialised = media_source.source_buffers().length() > 0;
-            if initialised {
+            if !initialised {
                 let mime = format!("video/mp4; codecs=\"{}\"", video_track.codec);
+                console_log!("mime = {}", mime);
                 let source_buffer = media_source.add_source_buffer(&mime).unwrap();
                 source_buffer.append_buffer_with_array_buffer(&a.buffer()).unwrap();
                 mp4::init_segment(vec![video_track], 0xffffffff, 1000);
