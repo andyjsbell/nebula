@@ -1,6 +1,10 @@
+extern crate nebula_mp4;
 mod utils;
-mod mp4;
-mod h264;
+
+use nebula_mp4::{
+    h264,
+    mp4
+};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use js_sys::Uint8Array;
@@ -37,46 +41,54 @@ fn on_load_data(event: Event, media_source: &MediaSource, ws: &WebSocket) {
             a.copy_to(&mut data[..]);
 
             let nalus = h264::parse_to_nalu(data);
-            let mut samples : Vec<mp4::Sample> = Vec::new();
             let mut size = 0;
-            let v = &mut Vec::<h264::Nalu>::new();
             console_log!("nalus size: {}", nalus.len());
+            let mut video_track = mp4::Track::new();
+            let mut units : Vec<h264::Nalu> = Vec::new();
             for nalu in nalus {
                 size = size + nalu.get_size();
-                v.push(nalu);
-            
-                if v.last().unwrap().ntype == h264::IDR || v.last().unwrap().ntype == h264::NDR {
-                
-                    let sample: mp4::Sample = mp4::Sample {
-                        cts: 0,
-                        duration: 30 * v.len() as u32,  // We are assuming 30ish frames per second, TODO - need to add to protocol duration
-                        flags: mp4::Flags {
-                            is_leading: 0,
-                            is_depended_on: 0,
-                            has_redundancy: 0,
-                            degrad_prio: 0,
-                            is_non_sync: 0,
-                            depends_on: 0,
-                            padding_value: 0,
-                        },
-                        nalus: v.to_vec(),
-                        size: size,
-                    };
+                match nalu.ntype {
 
-                    samples.push(sample);
+                    h264::NalType::SPS => {
+                        units.push(nalu.clone());
+                        video_track.parse_sps(nalu.payload);
+                    },
+                    h264::NalType::PPS => {
+                        units.push(nalu.clone());
+                        video_track.parse_pps(nalu.payload);
+                    },
+                    h264::NalType::IDR | h264::NalType::NDR => {
+                        units.push(nalu.clone());
+                        
+                        video_track.samples.push(mp4::Sample {
+                            cts: 0,
+                            duration: 30,  // We are assuming 30ish frames per second, TODO - need to add to protocol duration
+                            flags: mp4::Flags {
+                                is_leading: 0,
+                                is_depended_on: 0,
+                                has_redundancy: 0,
+                                degrad_prio: 0,
+                                is_non_sync: 0,
+                                depends_on: 0,
+                                padding_value: 0,
+                            },
+                            nalus: vec![nalu],
+                            size: size,
+                        });
+                    },
+                    _ => {
+                        ();
+                    }
                 }
             }
-
-            
-            let video_track = mp4::Track::new();
             
             let initialised = media_source.source_buffers().length() > 0;
             if !initialised {
                 let mime = format!("video/mp4; codecs=\"{}\"", video_track.codec);
                 console_log!("mime = {}", mime);
-                let source_buffer = media_source.add_source_buffer(&mime).unwrap();
-                source_buffer.append_buffer_with_array_buffer(&a.buffer()).unwrap();
-                mp4::init_segment(vec![video_track], 0xffffffff, 1000);
+                // let source_buffer = media_source.add_source_buffer(&mime).unwrap();
+                // source_buffer.append_buffer_with_array_buffer(&a.buffer()).unwrap();
+                // mp4::init_segment(vec![video_track], 0xffffffff, 1000);
             } else {
                 let sequence_number = 0; // this needs to increase on each atom
                 let decode_time = 0;
