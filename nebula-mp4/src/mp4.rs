@@ -169,7 +169,7 @@ pub fn hdlr(mp4_type: [u8; 37]) -> Vec<u8> {
     create_box(TYPE_HDLR, vec![&mp4_type])    
 }
 
-pub fn mdat(data: [u8; 4]) -> Vec<u8> {
+pub fn mdat(data: &Vec<u8>) -> Vec<u8> {
     create_box(TYPE_MDAT, vec![&data])
 }
 
@@ -186,7 +186,7 @@ pub struct Flags {
 
 #[derive(Clone)]
 pub struct Sample {
-    pub size: u32,
+    pub size: usize,
     pub duration: u32,
     pub cts: u32,
     pub flags: Flags,
