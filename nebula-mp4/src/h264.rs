@@ -348,8 +348,8 @@ impl Nalu {
         self.ntype == NalType::IDR
     }
 
-    pub fn get_size(&self ) -> u32 {
-        return 4 + self.payload.len() as u32;
+    pub fn get_size(&self ) -> usize {
+        return 4 + self.payload.len();
     }
 }
 
