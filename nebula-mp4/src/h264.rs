@@ -77,7 +77,7 @@ pub fn read_sps(data: &Vec<u8>) -> SequencePictureSet {
         sps.profile_idc == 118 ||
         sps.profile_idc == 128 {
         
-        let mut chroma_format_idc = decoder.read_ueg();
+        let chroma_format_idc = decoder.read_ueg();
         if chroma_format_idc == 3 {
             decoder.skip_bits(1); // separate_colour_plane_flag
         }
@@ -99,7 +99,7 @@ pub fn read_sps(data: &Vec<u8>) -> SequencePictureSet {
     }
 
     decoder.skip_ueg(); // log2_max_frame_num_minus4
-    let mut pic_order_cnt_type = decoder.read_ueg();
+    let pic_order_cnt_type = decoder.read_ueg();
     if pic_order_cnt_type == 0 {
         decoder.read_ueg(); // log2_max_pic_order_cnt_lsb_minus4
     } else if pic_order_cnt_type == 1 {
@@ -263,7 +263,7 @@ impl<'a> Expo<'a> {
     pub fn skip_lz(&mut self) -> u32 {
         let leading_zero_count: u32 = 0;
         
-        for leading_zero_count in 1..(self.bit_length - self.index) {
+        for leading_zero_count in 0..(self.bit_length - self.index) {
 
             if self.get_bits(1, self.index + leading_zero_count, false) > 0 {
                 self.index = self.index + leading_zero_count;
