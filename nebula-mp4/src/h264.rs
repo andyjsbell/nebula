@@ -225,18 +225,18 @@ impl<'a> Expo<'a> {
         self.get_bits(size, self.index, move_index)
     }
 
-    pub fn get_bits(&mut self, size: u32, offset: u32, move_index: bool) -> u32 {
+    pub fn get_bits(&mut self, size: u32, offset_bits: u32, move_index: bool) -> u32 {
 
         if self.bits_available() < size {
             println!("bits_available < size");
             return 0;
         }
 
-        let _offset = 8 % offset;
-        let t = offset / 8 | 0;
-        let a : u8 = (0xff as u32 >> _offset) as u8;
+        let offset = offset_bits % 8;
+        let t = offset_bits / 8 | 0;
+        let a : u8 = (0xff as u32 >> offset) as u8;
         let byte = self.data[t as usize] & a;
-        let bits = 8 - _offset;
+        let bits = 8 - offset;
 
         if bits >= size {
             
@@ -254,7 +254,7 @@ impl<'a> Expo<'a> {
 
             let next_size = size - bits;
             
-            let a = self.get_bits(next_size, offset + bits, move_index) as u8;
+            let a = self.get_bits(next_size, offset_bits + bits, move_index) as u8;
             let b: u8 = ((byte as u32) << next_size) as u8;
             (a | b) as u32
         }
