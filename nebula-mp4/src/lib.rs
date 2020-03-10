@@ -85,9 +85,9 @@ mod tests {
                     assert_eq!(sps.pic_height_in_map_units_minus1, 67);
                     assert_eq!(sps.frame_mbs_only_flag, 1);
 
-                    assert_eq!(track.width, 1920);
-                    assert_eq!(track.height, 1080);
-                    
+                    assert_eq!(video_track.width, 1920);
+                    assert_eq!(video_track.height, 1080);
+                    assert_eq!(video_track.codec, "avc1.640028");
                 },
                 _ => (),
             }
