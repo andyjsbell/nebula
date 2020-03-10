@@ -231,7 +231,7 @@ impl Track {
         }
     }
     
-    pub fn parse_sps(&mut self, data: Vec<u8>) {
+    pub fn parse_sps(&mut self, data: Vec<u8>) -> h264::SequencePictureSet {
 
         self.sps = data;
         let sps = h264::read_sps(&(self.sps));
@@ -245,6 +245,8 @@ impl Track {
         let c = &(self.sps[1..5]);
         let s = str::from_utf8(c).unwrap();
         self.codec = codec.add(s);
+
+        sps
     }
 
     pub fn parse_pps(&mut self, data: Vec<u8>) {
