@@ -316,7 +316,7 @@ impl<'a> Expo<'a> {
 
 }
 
-#[derive(Clone, PartialEq, TryFromPrimitive)]
+#[derive(Debug, Clone, PartialEq, TryFromPrimitive)]
 #[repr(u8)]
 pub enum NalType {
     NDR = 1,
@@ -327,7 +327,7 @@ pub enum NalType {
     AUD = 9,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Nalu {
     pub payload : Vec<u8>,
     pub nri : u8,
