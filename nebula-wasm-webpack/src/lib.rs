@@ -47,11 +47,13 @@ fn on_load_data(event: Event, media_source: &MediaSource, ws: &WebSocket) {
             let mut units : Vec<h264::Nalu> = Vec::new();
             for nalu in nalus {
                 size = size + nalu.get_size();
+                console_log!("nalu type: {:?}", nalu.ntype);
                 match nalu.ntype {
 
                     h264::NalType::SPS => {
                         units.push(nalu.clone());
                         video_track.parse_sps(nalu.payload);
+                        console_log!("parsing sps: {}", video_track.width);
                     },
                     h264::NalType::PPS => {
                         units.push(nalu.clone());
@@ -84,17 +86,23 @@ fn on_load_data(event: Event, media_source: &MediaSource, ws: &WebSocket) {
             
             let initialised = media_source.source_buffers().length() > 0;
             if !initialised {
+
+                console_log!("{}", video_track.codec);
                 let mime = format!("video/mp4; codecs=\"{}\"", video_track.codec);
                 console_log!("mime = {}", mime);
-                // let source_buffer = media_source.add_source_buffer(&mime).unwrap();
-                // source_buffer.append_buffer_with_array_buffer(&a.buffer()).unwrap();
-                // mp4::init_segment(vec![video_track], 0xffffffff, 1000);
+                let source_buffer = media_source.add_source_buffer(&mime).unwrap();
+                let mut v = mp4::init_segment(vec![video_track], 0xffffffff, 1000);
+
+                source_buffer.append_buffer_with_u8_array(&mut v).unwrap();
+                
             } else {
                 let sequence_number = 0; // this needs to increase on each atom
                 let decode_time = 0;
                 let mut moof = mp4::moof(sequence_number, decode_time, &video_track);
-                let mut mdat = mp4::mdat([0,0,0,0]);
+                let mut mdat = mp4::mdat(&video_track.samples[0].nalus[0].payload);
                 moof.append(&mut mdat);
+
+                media_source.source_buffers().get(0).unwrap().append_buffer_with_u8_array(&mut moof).unwrap();
             }
 
             // Grab next frame
