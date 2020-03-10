@@ -233,7 +233,7 @@ impl<'a> Expo<'a> {
         }
 
         let _offset = 8 % offset;
-        let t = (offset / 8 | 0);
+        let t = offset / 8 | 0;
         let a : u8 = (0xff as u32 >> _offset) as u8;
         let byte = self.data[t as usize] & a;
         let bits = 8 - _offset;
