@@ -203,12 +203,12 @@ impl<'a> Expo<'a> {
         Expo {
             index: 0,
             bit_length: data.len() as u32 * 8,
-            data: data,
+            data,
         }
     }
 
     pub fn bits_available(&self) -> u32 {
-        self.bit_length * self.index
+        self.bit_length - self.index
     }
 
     pub fn skip_bits(&mut self, size: u32) -> u32 {
@@ -228,11 +228,14 @@ impl<'a> Expo<'a> {
     pub fn get_bits(&mut self, size: u32, offset: u32, move_index: bool) -> u32 {
 
         if self.bits_available() < size {
+            println!("bits_available < size");
             return 0;
         }
 
-        let _offset = offset & 8;
-        let byte = self.data[(offset / 8 | 0) as usize] & (0xff >> _offset);
+        let _offset = 8 % offset;
+        let t = (offset / 8 | 0);
+        let a : u8 = (0xff as u32 >> _offset) as u8;
+        let byte = self.data[t as usize] & a;
         let bits = 8 - _offset;
 
         if bits >= size {
@@ -251,21 +254,24 @@ impl<'a> Expo<'a> {
 
             let next_size = size - bits;
             
-            ((byte << next_size) | self.get_bits(next_size, offset + bits, move_index) as u8).into()
+            let a = self.get_bits(next_size, offset + bits, move_index) as u8;
+            let b: u8 = ((byte as u32) << next_size) as u8;
+            (a | b) as u32
         }
     }
 
     pub fn skip_lz(&mut self) -> u32 {
+        let leading_zero_count: u32 = 0;
         
-        for leading_zero_count in 0..(self.bit_length - self.index) {
+        for leading_zero_count in 1..(self.bit_length - self.index) {
 
-            if self.get_bits(1, self.index, false) > 0 {
+            if self.get_bits(1, self.index + leading_zero_count, false) > 0 {
                 self.index = self.index + leading_zero_count;
                 return leading_zero_count;
             }
         }
 
-        return 0;
+        return leading_zero_count;
     }
 
     pub fn skip_ueg(&mut self) {
