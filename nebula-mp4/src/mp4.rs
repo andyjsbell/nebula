@@ -560,10 +560,7 @@ pub fn moov(tracks: Vec<Track>, duration: u32, timescale: u32) -> Vec<u8> {
         boxes.extend_from_slice(&(trak(&track)));
     }
 
-    let mut v : Vec<u8> = mvhd(timescale, duration);
-    v.extend_from_slice(&boxes);
-    v.extend_from_slice(&mvex(tracks));
-    create_box(TYPE_MOOV, vec![&v])
+    create_box(TYPE_MOOV, vec![&mvhd(timescale, duration), &boxes, &mvex(tracks)])
 }
 
 pub fn mvex(tracks: Vec<Track>) -> Vec<u8> {
