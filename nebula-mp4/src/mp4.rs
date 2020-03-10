@@ -240,12 +240,10 @@ impl Track {
         self.height = ((2 - sps.frame_mbs_only_flag) * (sps.pic_height_in_map_units_minus1 + 1) * 16) - 
                         ((if sps.frame_mbs_only_flag > 0 { 2 } else { 4 }) * (sps.frame_crop_top_offset + sps.frame_crop_bottom_offset));
         
-        let codec = String::from("avc.");
+        let codec = String::from("avc1.");
 
-        let c = &(self.sps[1..5]);
-        let s = str::from_utf8(c).unwrap();
-        self.codec = codec.add(s);
-
+        let s = hex::encode(&self.sps[1..4]);
+        self.codec = codec.add(&s);
         sps
     }
 
