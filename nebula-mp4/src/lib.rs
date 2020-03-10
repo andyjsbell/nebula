@@ -73,13 +73,24 @@ mod tests {
             match nalu.ntype {
 
                 h264::NalType::SPS => {
-                    video_track.parse_sps(nalu.payload);
+                    let sps = video_track.parse_sps(nalu.payload);
+                    // https://mradionov.github.io/h264-bitstream-viewer/
+                    assert_eq!(sps.profile_idc, 100);
+                    assert_eq!(sps.level_idc, 40);
+                    assert_eq!(sps.frame_crop_left_offset, 0);
+                    assert_eq!(sps.frame_crop_right_offset, 0);
+                    assert_eq!(sps.frame_crop_top_offset, 0);
+                    assert_eq!(sps.frame_crop_bottom_offset, 4);
+                    assert_eq!(sps.pic_width_in_mbs_minus1, 119);
+                    assert_eq!(sps.pic_height_in_map_units_minus1, 67);
+                    assert_eq!(sps.frame_mbs_only_flag, 1);
+
+                    assert_eq!(track.width, 1920);
+                    assert_eq!(track.height, 1080);
+                    
                 },
                 _ => (),
             }
         }
     }
-
-
-
 }
