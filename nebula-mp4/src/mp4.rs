@@ -145,15 +145,16 @@ pub fn ftyp() -> Vec<u8> {
 }
 
 pub fn create_box(mp4_type: [u8; 4], payload: Vec<&[u8]>) -> Vec<u8> {
+    
     let mut size: usize = 8;
-    let mut v:Vec<u8> = vec![0];
+    let mut v:Vec<u8> = Vec::new();
 
     for item in payload {
         size = size + item.len();
         v.extend(item);
     }
 
-    let mut result : Vec<u8> = vec![0; size];
+    let mut result : Vec<u8> = Vec::new();
     result.push((size >> 24) as u8 & 0xff);
     result.push((size >> 16) as u8 & 0xff);
     result.push((size >> 8) as u8 & 0xff);
@@ -674,7 +675,8 @@ pub fn tkhd(track: &Track) -> Vec<u8> {
 pub fn init_segment(tracks: Vec<Track>, duration: u32, timescale: u32) -> Vec<u8> {
     
     let mut v = Vec::new();
-    v.extend_from_slice(&ftyp());
+    let ftyp = ftyp();
+    v.extend_from_slice(&ftyp);
     v.extend_from_slice(&moov(tracks, duration, timescale));
     v
 }
