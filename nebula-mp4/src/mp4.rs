@@ -249,7 +249,7 @@ impl Track {
     }
 
     pub fn parse_pps(&mut self, data: Vec<u8>) {
-        self.pps = data;
+        self.pps.extend_from_slice(&data[0..4]);
     }
 }
 
@@ -275,10 +275,16 @@ pub fn mdhd(timescale: u32, duration: u32) -> Vec<u8> {
 pub fn mdia(track: &Track) -> Vec<u8> {
     let t = if track.track_type == "video" {VIDEO_HDLR} else {AUDIO_HDLR};
 
+    let mdhd = &mdhd(track.timescale, track.duration);
+    let hdlr = hdlr(t);
+    let minf = minf(track);
+
+    println!("mdhd = {} hdlr = {} minf = {}", mdhd.len(), hdlr.len(), minf.len());
+
     create_box(TYPE_MDIA, vec![
-        &mdhd(track.timescale, track.duration),
-        &hdlr(t),
-        &minf(track)
+        &mdhd,
+        &hdlr,
+        &minf
     ])
 }
 
@@ -362,10 +368,13 @@ pub fn avc1(track: &Track) -> Vec<u8> {
     sps.push(track.sps.len() as u8 & 0xff);
     sps.extend_from_slice(&track.sps);
 
+    println!("pps = {:?}", sps);
+    
     pps.push((track.pps.len() >> 8) as u8 & 0xff);
     pps.push(track.pps.len() as u8 & 0xff);
     pps.extend_from_slice(&track.pps);
 
+    println!("sps = {:?}", pps);
     let mut p  = vec![
         0x01,   // version
         sps[3], // profile
@@ -548,7 +557,11 @@ pub fn trak(track: &Track) -> Vec<u8> {
     // if track.duration == 0 {
     //     track.duration = 0xffffffff;
     // }
-    create_box(TYPE_TRAK, vec![&tkhd(&track), &mdia(&track)])
+    let tkhd = tkhd(&track);
+    let mdia = mdia(&track);
+
+    println!("tkhd = {} mdia = {}", tkhd.len(), mdia.len());
+    create_box(TYPE_TRAK, vec![&tkhd, &mdia])
 }
 
 pub fn moov(tracks: Vec<Track>, duration: u32, timescale: u32) -> Vec<u8> {
@@ -560,7 +573,10 @@ pub fn moov(tracks: Vec<Track>, duration: u32, timescale: u32) -> Vec<u8> {
         boxes.extend_from_slice(&(trak(&track)));
     }
 
-    create_box(TYPE_MOOV, vec![&mvhd(timescale, duration), &boxes, &mvex(tracks)])
+    let mvhd = mvhd(timescale, duration);
+    let mvex = mvex(tracks);
+    println!("mvhd = {} boxes = {} mvex = {}", mvhd.len(), boxes.len(), mvex.len());
+    create_box(TYPE_MOOV, vec![&mvhd, &boxes, &mvex])
 }
 
 pub fn mvex(tracks: Vec<Track>) -> Vec<u8> {
@@ -673,7 +689,11 @@ pub fn init_segment(tracks: Vec<Track>, duration: u32, timescale: u32) -> Vec<u8
     
     let mut v = Vec::new();
     let ftyp = ftyp();
+    let moov = moov(tracks, duration, timescale);
+    println!("ftyp = {} moov = {} ", ftyp.len(), moov.len());
     v.extend_from_slice(&ftyp);
-    v.extend_from_slice(&moov(tracks, duration, timescale));
+    v.extend_from_slice(&moov);
+    println!("v = {}", v.len());
+    
     v
 }
