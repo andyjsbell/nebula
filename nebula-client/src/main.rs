@@ -8,6 +8,7 @@ use nebula_mp4::{
 use tungstenite::{connect, Message};
 use url::Url;
 use std::time::Instant;
+use std::io::Write;
 fn main() {
 
     let (mut socket, _) =
@@ -16,6 +17,9 @@ fn main() {
     let mut now = Instant::now();
     let mut count = 0;
     let mut initialised: bool = false;
+    let mut sequence_number = 0; // this needs to increase on each atom                
+    let mut file_out = std::fs::File::create("video.mp4").unwrap();
+
     loop {
         // println!("request frame");
         socket
@@ -79,17 +83,19 @@ fn main() {
             
             if !initialised {
                 let mime = format!("video/mp4; codecs=\"{}\"", video_track.codec);
-                println!("mime = {}", mime);
                 initialised = true;
-                // let source_buffer = media_source.add_source_buffer(&mime).unwrap();
-                // source_buffer.append_buffer_with_array_buffer(&a.buffer()).unwrap();
-                // mp4::init_segment(vec![video_track], 0xffffffff, 1000);
+                let v = mp4::init_segment(vec![video_track], 0xffffffff, 1000);
+                file_out.write(&v).unwrap();
+                file_out.flush().unwrap();
+            
             } else {
-                let sequence_number = 0; // this needs to increase on each atom
                 let decode_time = 0;
                 let mut moof = mp4::moof(sequence_number, decode_time, &video_track);
-                let mut mdat = mp4::mdat([0,0,0,0]);
+                let mut mdat = mp4::mdat(&video_track.samples[0].nalus[0].payload);
                 moof.append(&mut mdat);
+                file_out.write(&moof).unwrap();
+                file_out.flush().unwrap();
+                sequence_number = sequence_number + 1;
             }
     }
 }
