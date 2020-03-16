@@ -108,7 +108,7 @@ pub fn read_sps(data: &Vec<u8>) -> SequencePictureSet {
         decoder.skip_eg(); // offset_for_top_to_bottom_field
         sps.num_ref_frames_in_pic_order_cnt_cycle = decoder.read_ueg();
         
-        for i in 0..sps.num_ref_frames_in_pic_order_cnt_cycle {
+        for _ in 0..sps.num_ref_frames_in_pic_order_cnt_cycle {
             decoder.skip_eg();
         }
     }
