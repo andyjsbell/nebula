@@ -28,13 +28,25 @@ extern "C" {
     fn log(s: &str);
 }
 
-struct State {
+#[wasm_bindgen]
+pub struct State {
     pub initialised: bool,
     pub sequence_number: u32,
-    pub source_buffer: Option<SourceBuffer>,
+    // pub source_buffer: &SourceBuffer,
 }
 
-fn process_packet(packet: &JsValue, media_source: &MediaSource, state: &mut State) {
+#[wasm_bindgen]
+impl State {
+    pub fn new() -> State {
+        State {
+            initialised: false,
+            sequence_number: 0,
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub fn process_packet(packet: &JsValue, media_source: &MediaSource, state: &mut State) {
     let a : Uint8Array = Uint8Array::new(packet);
     
     let mut data = vec![0; a.length() as usize];
@@ -89,10 +101,10 @@ fn process_packet(packet: &JsValue, media_source: &MediaSource, state: &mut Stat
         let mime = format!("video/mp4; codecs=\"{}\"", video_track.codec);
         let mime_supported = MediaSource::is_type_supported(&mime);
         if mime_supported {
-            state.source_buffer = Some(media_source.add_source_buffer(&mime).unwrap());
+            // state.source_buffer = Some(media_source.add_source_buffer(&mime).unwrap());
             let mut v = mp4::init_segment(vec![video_track], 0xffffffff, 1000);
 
-            state.source_buffer.as_ref().unwrap().append_buffer_with_u8_array(&mut v).unwrap();
+            // state.source_buffer.as_ref().unwrap().append_buffer_with_u8_array(&mut v).unwrap();
             state.initialised = true;
         } else {
             console_log!("unsupported mime: {}", mime);
@@ -107,7 +119,7 @@ fn process_packet(packet: &JsValue, media_source: &MediaSource, state: &mut Stat
         console_log!("media source state = {:?}", media_source.ready_state());
         if media_source.ready_state() == MediaSourceReadyState::Open {
             console_log!("writing to source buffer");
-            state.source_buffer.as_ref().unwrap().append_buffer_with_u8_array(&mut moof).unwrap();
+            // state.source_buffer.as_ref().unwrap().append_buffer_with_u8_array(&mut moof).unwrap();
         } else {
             console_log!("media source not open");
         }
@@ -116,7 +128,8 @@ fn process_packet(packet: &JsValue, media_source: &MediaSource, state: &mut Stat
     }
 }
 
-fn request_new_frame(ws: &WebSocket) {
+#[wasm_bindgen]
+pub fn request_new_frame(ws: &WebSocket) {
                 // Grab next frame
     let mut cmd : [u8;1] = ['f' as u8];
 
@@ -159,7 +172,7 @@ fn on_opensource(event: Event) {
             let mut state = State {
                 initialised: false,
                 sequence_number: 0,
-                source_buffer:None,
+                // source_buffer:None,
             };
             
             let onmessage_callback = Closure::wrap(Box::new(move |e: MessageEvent| {
@@ -182,8 +195,9 @@ fn on_opensource(event: Event) {
 }
 
 #[wasm_bindgen]
-pub fn app(media_source: MediaSource) {
+pub fn app(value: &JsValue) {
     
+    let media_source : &MediaSource = JsCast::unchecked_ref::<MediaSource>(value);
     console_log!("media_source = {:?}", media_source);
     // Create MediaSource
     let window = web_sys::window().expect("no global `window` exists");
@@ -209,6 +223,13 @@ pub fn app(media_source: MediaSource) {
     //         console_log!("No video element present");
     //     }
     // }
+}
+
+#[wasm_bindgen]
+pub fn take_js_value_by_shared_ref(x: &JsValue) {
+    console_log!("{:?}", x);
+
+
 }
 // This is like the `main` function, except for JavaScript.
 #[wasm_bindgen(start)]
