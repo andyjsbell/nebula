@@ -138,11 +138,10 @@ pub fn process_packet(packet: &JsValue, media_source: &MediaSource, state: &mut 
 
 #[wasm_bindgen]
 pub fn write_to_buffer(state: &mut State) {
-    console_log!("write to buffer");
     match state.source_buffer {
         None => (),
         _ => {
-            if !state.source_buffer.as_ref().unwrap().updating() {
+            if !state.source_buffer.as_ref().unwrap().updating() && state.data.as_ref().unwrap().len() > 0 {
                 console_log!("append buffer");
                 let mut v = state.data.as_mut().unwrap();
                 state.source_buffer.as_ref().unwrap().append_buffer_with_u8_array(v);
