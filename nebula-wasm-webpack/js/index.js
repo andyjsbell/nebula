@@ -33,7 +33,8 @@ import("../pkg/index.js").then(wasm => {
     });
 
     let timerId = setInterval(function() {
-        wasm.write_to_buffer(state);
+        if (mediaSourceLoaded)
+            wasm.write_to_buffer(state);
     }, 50);
 
 });
