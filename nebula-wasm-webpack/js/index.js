@@ -31,4 +31,9 @@ import("../pkg/index.js").then(wasm => {
     ws.addEventListener('error', function(e) {
         console.log('Socket Error');
     });
+
+    let timerId = setInterval(function() {
+        wasm.write_to_buffer(state);
+    }, 50);
+
 });
