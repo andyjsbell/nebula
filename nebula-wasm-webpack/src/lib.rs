@@ -142,7 +142,7 @@ pub fn write_to_buffer(state: &mut State) {
         None => (),
         _ => {
             if !state.source_buffer.as_ref().unwrap().updating() && state.data.as_ref().unwrap().len() > 0 {
-                console_log!("append buffer");
+                console_log!("append buffer with length = {}", state.data.as_ref().unwrap().len());
                 let mut v = state.data.as_mut().unwrap();
                 state.source_buffer.as_ref().unwrap().append_buffer_with_u8_array(v);
                 state.data.as_mut().unwrap().clear();
@@ -155,7 +155,7 @@ pub fn write_to_buffer(state: &mut State) {
 
 #[wasm_bindgen]
 pub fn request_new_frame(ws: &WebSocket) {
-                // Grab next frame
+    // Grab next frame
     let mut cmd : [u8;1] = ['f' as u8];
 
     match ws.send_with_u8_array(&mut cmd) {
