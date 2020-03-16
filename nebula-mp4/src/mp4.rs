@@ -1,5 +1,4 @@
 use crate::h264;
-use std::str;
 use std::ops::Add;
 
 pub const TYPE_AVC1: [u8; 4] = [ 97, 118, 99, 49 ];
