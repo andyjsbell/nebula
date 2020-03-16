@@ -28,13 +28,28 @@ extern "C" {
     fn log(s: &str);
 }
 
-struct State {
+#[wasm_bindgen]
+pub struct State {
     pub initialised: bool,
-    pub sequence_number: u32,
-    pub source_buffer: Option<SourceBuffer>,
+    sequence_number: u32,
+    data: Option<Vec<u8>>,
+    source_buffer: Option<SourceBuffer>,
 }
 
-fn process_packet(packet: &JsValue, media_source: &MediaSource, state: &mut State) {
+#[wasm_bindgen]
+impl State {
+    pub fn new() -> State {
+        State {
+            initialised: false,
+            sequence_number: 0,
+            data: None,
+            source_buffer: None,
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub fn process_packet(packet: &JsValue, media_source: &MediaSource, state: &mut State) {
     let a : Uint8Array = Uint8Array::new(packet);
     
     let mut data = vec![0; a.length() as usize];
@@ -75,7 +90,7 @@ fn process_packet(packet: &JsValue, media_source: &MediaSource, state: &mut Stat
                         padding_value: 0,
                     },
                     nalus: vec![nalu],
-                    size: size,
+                    size,
                 });
             },
             _ => {
@@ -91,8 +106,18 @@ fn process_packet(packet: &JsValue, media_source: &MediaSource, state: &mut Stat
         if mime_supported {
             state.source_buffer = Some(media_source.add_source_buffer(&mime).unwrap());
             let mut v = mp4::init_segment(vec![video_track], 0xffffffff, 1000);
-
-            state.source_buffer.as_ref().unwrap().append_buffer_with_u8_array(&mut v).unwrap();
+            console_log!("segment length = {:?}", v.len());
+            match state.data {
+                None => {
+                    console_log!("write first packet");
+                    state.data = Some(v);
+                },
+                _ => {
+                    console_log!("append data");
+                    state.data.as_mut().unwrap().append(&mut v);
+                }
+            }
+            
             state.initialised = true;
         } else {
             console_log!("unsupported mime: {}", mime);
@@ -105,19 +130,32 @@ fn process_packet(packet: &JsValue, media_source: &MediaSource, state: &mut Stat
         moof.append(&mut mdat);
         
         console_log!("media source state = {:?}", media_source.ready_state());
-        if media_source.ready_state() == MediaSourceReadyState::Open {
-            console_log!("writing to source buffer");
-            state.source_buffer.as_ref().unwrap().append_buffer_with_u8_array(&mut moof).unwrap();
-        } else {
-            console_log!("media source not open");
-        }
+        state.data.as_mut().unwrap().append(&mut moof);
         
         state.sequence_number = state.sequence_number + 1;
     }
 }
 
-fn request_new_frame(ws: &WebSocket) {
-                // Grab next frame
+#[wasm_bindgen]
+pub fn write_to_buffer(state: &mut State) {
+    match state.source_buffer {
+        None => (),
+        _ => {
+            if !state.source_buffer.as_ref().unwrap().updating() && state.data.as_ref().unwrap().len() > 0 {
+                console_log!("append buffer with length = {}", state.data.as_ref().unwrap().len());
+                let mut v = state.data.as_mut().unwrap();
+                state.source_buffer.as_ref().unwrap().append_buffer_with_u8_array(v);
+                state.data.as_mut().unwrap().clear();
+            } else {
+                console_log!("updating source buffer so no write");
+            }
+        }
+    }
+}
+
+#[wasm_bindgen]
+pub fn request_new_frame(ws: &WebSocket) {
+    // Grab next frame
     let mut cmd : [u8;1] = ['f' as u8];
 
     match ws.send_with_u8_array(&mut cmd) {
@@ -126,90 +164,6 @@ fn request_new_frame(ws: &WebSocket) {
     }
 }
 
-fn on_opensource(event: Event) {
-    console_log!("on_opensource {:?}", event);
-
-    let event_target : EventTarget = event.target().unwrap();
-    match event_target.dyn_into::<MediaSource>() {
-        Ok(media_source) => {
-            console_log!("Creating websocket");
-            
-            let ws = WebSocket::new("ws://localhost:9001/socket").unwrap();
-            ws.set_binary_type(BinaryType::Arraybuffer);
-
-            let onerror_callback = Closure::wrap(Box::new(move |e: ErrorEvent| {
-                console_log!("error event: {:?}", e);
-            }) as Box<dyn FnMut(ErrorEvent)>);
-            ws.set_onerror(Some(onerror_callback.as_ref().unchecked_ref()));
-            onerror_callback.forget();
-
-            let cloned_ws = ws.clone();
-            let onopen_callback = Closure::wrap(Box::new(move |_| {
-                console_log!("Socket opened");
-                let mut cmd : [u8;1] = ['f' as u8];
-                match cloned_ws.send_with_u8_array(&mut cmd) {
-                    Ok(_) => console_log!("message successfully sent"),
-                    Err(err) => console_log!("error sending message: {:?}", err),
-                }
-            }) as Box<dyn FnMut(JsValue)>);
-            ws.set_onopen(Some(onopen_callback.as_ref().unchecked_ref()));
-            onopen_callback.forget();
-
-            let cloned_ws = ws.clone();
-            let mut state = State {
-                initialised: false,
-                sequence_number: 0,
-                source_buffer:None,
-            };
-            
-            let onmessage_callback = Closure::wrap(Box::new(move |e: MessageEvent| {
-
-                let response = e.data();
-                console_log!("{:?}", response); 
-                process_packet(&response, &media_source, &mut state);
-                request_new_frame(&cloned_ws);
-
-            }) as Box<dyn FnMut(MessageEvent)>);
-            
-            // Attach event
-            ws.set_onmessage(Some(onmessage_callback.as_ref().unchecked_ref()));
-            onmessage_callback.forget();
-        }
-        Err(event_target) => {
-
-        }
-    }
-}
-
-#[wasm_bindgen]
-pub fn app(media_source: MediaSource) {
-    
-    console_log!("media_source = {:?}", media_source);
-    // Create MediaSource
-    let window = web_sys::window().expect("no global `window` exists");
-    let document = window.document().expect("should have a document on window");
-    
-    // match document.query_selector("video").unwrap() {
-    //     Some(video) => {
-            // let media_source = MediaSource::new().unwrap();
-            // let video_src = Url::create_object_url_with_source(&media_source).unwrap();
-            // video.set_attribute("src", &video_src).unwrap();
-            let sourceopen_callback = Closure::wrap(Box::new(|event: Event| on_opensource(event)) as Box<dyn FnMut(Event)>);    
-            media_source.set_onsourceopen(Some(sourceopen_callback.as_ref().unchecked_ref()));
-            sourceopen_callback.forget();
-            
-            let sourceclosed_callback = Closure::wrap(Box::new(|event: Event| {
-                console_log!("media source closed");
-            }) as Box<dyn FnMut(Event)>);    
-            media_source.set_onsourceclosed(Some(sourceclosed_callback.as_ref().unchecked_ref()));
-            sourceclosed_callback.forget();
-
-    //     }
-    //     None => {
-    //         console_log!("No video element present");
-    //     }
-    // }
-}
 // This is like the `main` function, except for JavaScript.
 #[wasm_bindgen(start)]
 pub fn main_js() -> Result<(), JsValue> {
